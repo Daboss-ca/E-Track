@@ -73,3 +73,41 @@ export default defineConfig([
 ])
 
 ```
+## 🚀 Team Git Workflow & Development Guidelines
+
+To maintain code quality, consistency, and a clean commit history across the project, all team members are expected to adhere to the following workflow and CLI guidelines.
+
+---
+
+### 1. Core Rules
+* **No Direct Commits to `main`:** Direct pushes to the `main` branch are strictly blocked. All updates must go through a Pull Request (PR).
+* **Feature Isolation:** Every new feature, bug fix, or chore must be developed in its own dedicated branch.
+* **Local Verification:** Always run `npm run lint` locally and fix any reported issues before committing and pushing code.
+
+---
+
+### 2. Branch Naming Conventions
+Follow these naming standards when creating a new branch:
+
+* **Features:** `feature/short-description` *(e.g., `feature/user-authentication`)*
+* **Bug Fixes:** `fix/short-description` *(e.g., `fix/navigation-bar-overlap`)*
+* **Maintenance / Chores:** `chore/short-description` *(e.g., `chore/update-dependencies`)*
+
+---
+
+### 3. Workflow Overview
+
+```text
+[Main Branch] ───(Pull)───> [Local Feature Branch]
+                                   │
+                           (Develop & Lint)
+                                   │
+                             (Push Branch)
+                                   ▼
+                            [Pull Request]
+                                   │
+                         (CI Checks + Review)
+                                   │
+                           (Merge to Main)
+                                   ▼
+                             [Main Branch]
