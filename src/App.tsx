@@ -1,7 +1,16 @@
-export default function App() {
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import AuthPage from './pages/AuthPage';
+import UpdatePassword from './pages/UpdatePassword';
+
+function App() {
   return (
-    <div>
-      <h1>E-Track</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AuthPage />} />
+        <Route path="/update-password" element={<UpdatePassword />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
+
+export default App;
