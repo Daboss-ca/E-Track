@@ -1,15 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { UserRole } from '../types/auth';
-
-interface AuthContextType {
-  user: User | null;
-  role: UserRole | null;
-  loading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType>({ user: null, role: null, loading: true });
+import { AuthContext } from './AuthContextType';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -22,7 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select('role')
       .eq('id', userId)
       .single();
-    
+
     if (data) setRole(data.role as UserRole);
     setLoading(false);
   }, []);
@@ -49,5 +42,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-export const useAuth = () => useContext(AuthContext);
