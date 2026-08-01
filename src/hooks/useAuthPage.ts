@@ -99,8 +99,14 @@ export function useAuthPage() {
       });
       if (error) throw error;
       setSuccessMessage('Registration successful!');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        const error = err as SupabaseAuthError;
+        setError(getErrorMessage(error) || 'An unexpected error occurred.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -116,5 +122,3 @@ export function useAuthPage() {
     handleRegister,
   };
 }
-
-//TODO: Implement Role-Based Redirection
