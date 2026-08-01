@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import type { UserRole } from '../types/auth';
 
 export type AuthView = 'login' | 'register';
 
@@ -20,65 +22,67 @@ export interface RegisterFormData {
   role: string;
 }
 
-// Helper Functions
 const getErrorMessage = (error: SupabaseAuthError | null) => {
   if (!error) return null;
-
   switch (error.code) {
-    case 'user_already_exists':
-      return 'This email is already registered. Please use a different email or log in.';
-    case 'weak_password':
-      return 'The password is too weak. Please use at least 6 characters.';
-    case 'invalid_email':
-      return 'The email format is invalid.';
-    case 'invalid_credentials':
-      return 'Invalid email or password. Please check your credentials and try again.';
-    case 'email_not_confirmed':
-      return 'Your email has not been verified. Please check your inbox.';
-    default:
-      return error.message || 'An unexpected error occurred. Please try again.';
+    case 'user_already_exists': return 'This email is already registered.';
+    case 'weak_password': return 'The password is too weak.';
+    case 'invalid_credentials': return 'Invalid email or password.';
+    default: return error.message || 'An unexpected error occurred.';
   }
 };
 
 const validateRegisterInput = (data: RegisterFormData) => {
-  if (!data.cvsuEmail || !data.password || !data.fullName) {
-    throw new Error('All fields are required.');
-  }
-  if (!data.cvsuEmail.endsWith('@cvsu.edu.ph')) {
-    throw new Error('Please use your official CvSU email address.');
-  }
-  if (data.password.length < 6) {
-    throw new Error('Password must be at least 6 characters long.');
-  }
+  if (!data.cvsuEmail || !data.password || !data.fullName) throw new Error('All fields are required.');
+  if (!data.cvsuEmail.endsWith('@cvsu.edu.ph')) throw new Error('Please use your official CvSU email.');
+  if (data.password.length < 6) throw new Error('Password must be at least 6 characters.');
 };
 
-// Custom Hook
+const getRouteByRole = (role: string): string => {
+  const routes: Record<string, string> = {
+    admin: '/admin',
+    faculty: '/faculty',
+    office_staff: '/office-staff',
+    custodian: '/custodian',
+    segregator: '/segregator',
+  };
+  return routes[role] || '/';
+};
+
 export function useAuthPage() {
   const [view, setView] = useState<AuthView>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const toggleView = () => {
     setView((prev) => (prev === 'login' ? 'register' : 'login'));
     setError(null);
-    setSuccessMessage(null);
   };
 
   const handleLogin = async (data: LoginFormData) => {
     setIsSubmitting(true);
     setError(null);
-    setSuccessMessage(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: data.identifier,
       password: data.password,
     });
 
-    if (error) {
-      setError(getErrorMessage(error as SupabaseAuthError));
-    } else {
-      window.location.href = '/dashboard';
+    if (authError) {
+      setError(getErrorMessage(authError as SupabaseAuthError));
+    } else if (authData.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profile) {
+        const role = profile.role as UserRole;
+        navigate(getRouteByRole(role));
+      }
     }
     setIsSubmitting(false);
   };
@@ -86,32 +90,22 @@ export function useAuthPage() {
   const handleRegister = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     setError(null);
-    setSuccessMessage(null);
-
     try {
       validateRegisterInput(data);
-
       const { error } = await supabase.auth.signUp({
         email: data.cvsuEmail,
         password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-            role: data.role,
-          },
-        },
+        options: { data: { full_name: data.fullName, role: data.role } },
       });
-
       if (error) throw error;
-
-      setSuccessMessage('Registration successful! Please check your email for verification.');
+      setSuccessMessage('Registration successful!');
     } catch (err: unknown) {
-      const error = err as SupabaseAuthError;
 
-      if (error.code) {
-        setError(getErrorMessage(error));
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
-        setError(error.message || 'An unexpected error occurred.');
+        const error = err as SupabaseAuthError;
+        setError(getErrorMessage(error) || 'An unexpected error occurred.');
       }
     } finally {
       setIsSubmitting(false);
@@ -128,5 +122,3 @@ export function useAuthPage() {
     handleRegister,
   };
 }
-
-//TODO: Implement Role-Based Redirection
