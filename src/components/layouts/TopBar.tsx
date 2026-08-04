@@ -1,61 +1,120 @@
-import { Bell, Search, ChevronDown } from 'lucide-react';
-import type { Role } from '../../config/navigation';
+// src/components/layouts/TopHeader.tsx
+import React, { useState } from 'react';
+import { Search, Bell, HelpCircle, X } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import type { NotificationItem } from '../../types/app';
 
-interface TopBarProps {
-  role: Role;
-  title?: string;
-  subtitle?: string;
-  userName?: string;
+interface TopHeaderProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  notifications: NotificationItem[];
+  onMarkAllRead: () => void;
 }
 
-export default function TopBar({
-  role,
-  title = 'Dashboard',
-  subtitle = 'Welcome back',
-  userName = 'User',
-}: TopBarProps) {
+const TopHeader: React.FC<TopHeaderProps> = ({
+  searchValue,
+  onSearchChange,
+  notifications,
+  onMarkAllRead,
+}) => {
+  const { user } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const displayName = user?.user_metadata?.full_name || user?.email || 'User';
+  const initials = displayName
+    .split(' ')
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
-    <header className="border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">
-            {role}
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-900">{title}</h1>
-          <p className="text-sm text-slate-500">{subtitle}</p>
-        </div>
+    <header className="flex items-center gap-3 border-b border-gray-100 bg-white px-6 py-3.5">
+      <div className="relative max-w-md flex-1">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search requests, tracking codes, departments..."
+          className="w-full rounded-full bg-[#EAECEF] py-2.5 pl-9 pr-4 text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+        />
+      </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative hidden md:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-[280px] rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-white"
-            />
-          </div>
+      <div className="flex-1" />
 
-          <button
-            type="button"
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500" />
-          </button>
+      <button
+        type="button"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        aria-label="Help"
+      >
+        <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.75} />
+      </button>
 
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
-              {userName.charAt(0).toUpperCase()}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowNotifications((s) => !s)}
+          className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          aria-label="Notifications"
+        >
+          <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          {unreadCount > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
+        </button>
+
+        {showNotifications && (
+          <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <p className="text-[13px] font-semibold text-gray-800">Notifications</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onMarkAllRead}
+                  className="text-[11.5px] font-medium text-emerald-600 hover:underline"
+                >
+                  Mark all read
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNotifications(false)}
+                  className="text-gray-300 hover:text-gray-500"
+                  aria-label="Close notifications"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-            <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-slate-900">{userName}</p>
-              <p className="text-xs text-slate-500">{role}</p>
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="px-4 py-6 text-center text-[12.5px] text-gray-400">You're all caught up</p>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`border-b border-gray-50 px-4 py-3 last:border-0 ${!n.read ? 'bg-emerald-50/30' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[12.5px] font-medium text-gray-800">{n.title}</p>
+                      {!n.read && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />}
+                    </div>
+                    <p className="mt-0.5 text-[12px] text-gray-500">{n.message}</p>
+                    <p className="mt-1 text-[11px] text-gray-400">{n.timestamp}</p>
+                  </div>
+                ))
+              )}
             </div>
-            <ChevronDown className="h-4 w-4 text-slate-400" />
           </div>
-        </div>
+        )}
+      </div>
+
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-900 text-[12px] font-semibold text-white">
+        {initials}
       </div>
     </header>
   );
-}
+};
+
+export default TopHeader;
