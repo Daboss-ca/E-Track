@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Truck, Search, Calendar, MapPin, User, FileText } from 'lucide-react';
 import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
-import { useLifecycleTracking } from '../../hooks/useLifecycleTracking';
+import { useLifecycleTracking } from '../../hooks/faculty/useLifecycleTracking';
 import type { UserRole } from '../../types/app';
 
 interface ActivePickupsPageProps {

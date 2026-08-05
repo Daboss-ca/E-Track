@@ -4,7 +4,7 @@ import { Recycle, Truck, CheckCircle2, Clock, ArrowUpRight, BarChart3, ScanLine,
 import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { useEWasteForm } from '../../hooks/useEWasteForm';
+import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
 
 interface UserDashboardProps {
   currentNav?: string;

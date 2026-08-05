@@ -1,6 +1,6 @@
 // src/hooks/useEWasteForm.ts
 import { useState } from 'react';
-import type { EquipmentCategory, EWasteRequest, RequestStatus, LifecycleStage, EquipmentCondition } from '../types/app';
+import type { EquipmentCategory, EWasteRequest, RequestStatus, LifecycleStage, EquipmentCondition } from '../../types/app';
 
 export interface EquipmentRow {
   id: string;

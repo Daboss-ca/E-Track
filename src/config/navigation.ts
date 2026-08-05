@@ -12,48 +12,49 @@ import {
   QrCode,
 } from 'lucide-react';
 
-export type Role = 'admin' | 'faculty' | 'offc_staff' | 'custodian' | 'segregator';
+export type Role = 'admin' | 'faculty' | 'offc_staff'  | 'custodian' | 'segregator';
 
 export interface NavigationItem {
-  id: string; // Kina-kailangan ng Sidebar para sa navigation at active tab
+  id: string; 
   label: string;
   path: string;
-  icon?: ElementType; // Kina-kailangan para sa rendering ng icons sa Sidebar
+  icon?: ElementType; 
   children?: NavigationItem[];
 }
 
-export const navigationConfig: Record<Role, NavigationItem[]> = {
-  // 1. FACULTY
-  faculty: [
-    { 
-      id: 'dashboard', 
-      label: 'Dashboard', 
-      path: '/faculty',
-      icon: LayoutDashboard,
-    },
-    {
-      id: 'requests',
-      label: 'E-Waste Requests',
-      path: '/faculty/requests',
-      icon: FilePlus2,
-      children: [
-        { id: 'requests-new', label: 'Submit Request', path: '/faculty/requests/new' },
-        { id: 'requests-ledger', label: 'Request Ledger', path: '/faculty/requests/ledger' },
-      ],
-    },
-    {
-      id: 'tracking',
-      label: 'Lifecycle Tracking',
-      path: '/faculty/tracking',
-      icon: Recycle,
-      children: [
-        { id: 'tracking-active', label: 'Active Pickups', path: '/faculty/tracking/active' },
-        { id: 'tracking-history', label: 'Disposal History', path: '/faculty/tracking/history' },
-      ],
-    },
-  ],
+const facultyNavigation: NavigationItem[] = [
+  { 
+    id: 'dashboard', 
+    label: 'Dashboard', 
+    path: '/faculty',
+    icon: LayoutDashboard,
+  },
+  {
+    id: 'requests',
+    label: 'E-Waste Requests',
+    path: '/faculty/requests',
+    icon: FilePlus2,
+    children: [
+      { id: 'requests-new', label: 'Submit Request', path: '/faculty/requests/new' },
+      { id: 'requests-ledger', label: 'Request Ledger', path: '/faculty/requests/ledger' },
+    ],
+  },
+  {
+    id: 'tracking',
+    label: 'Lifecycle Tracking',
+    path: '/faculty/tracking',
+    icon: Recycle,
+    children: [
+      { id: 'tracking-active', label: 'Active Pickups', path: '/faculty/tracking/active' },
+      { id: 'tracking-history', label: 'Disposal History', path: '/faculty/tracking/history' },
+    ],
+  },
+];
 
-  // 2. CUSTODIAN
+export const navigationConfig: Record<Role, NavigationItem[]> = {
+  faculty: facultyNavigation,
+  offc_staff: facultyNavigation,
+
   custodian: [
     { 
       id: 'validation-hub', 
@@ -75,12 +76,6 @@ export const navigationConfig: Record<Role, NavigationItem[]> = {
     },
   ],
 
-  // UNTOUCHED FOR NOW (Aayusin kapag gagawin na ang features)
-  offc_staff: [
-    { id: 'incoming-requests', label: 'Incoming Requests', path: '/office-staff', icon: FilePlus2 },
-    { id: 'return-slips', label: 'Return Slips', path: '/office-staff/return-slips', icon: FileText },
-    { id: 'status-monitoring', label: 'Status Monitoring', path: '/office-staff/status', icon: Recycle },
-  ],
   admin: [
     { id: 'overview', label: 'Overview', path: '/admin', icon: LayoutDashboard },
     { id: 'capacity-guard', label: 'Capacity Guard', path: '/admin/capacity', icon: BarChart3 },

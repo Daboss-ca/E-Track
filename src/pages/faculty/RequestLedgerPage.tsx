@@ -4,7 +4,7 @@ import { Search, Recycle, CheckCircle2, Circle, X } from 'lucide-react';
 import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { useEWasteForm } from '../../hooks/useEWasteForm';
+import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
 import type { EWasteRequest, UserRole } from '../../types/app';
 
 interface RequestLedgerPageProps {
