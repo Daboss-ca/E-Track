@@ -2,14 +2,17 @@ import { createContext } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { UserRole } from '../types/auth';
 
-export interface AuthContextType {
+export type AuthStatus = 
+  | 'INITIALIZING' 
+  | 'UNAUTHENTICATED' 
+  | 'FETCHING_PROFILE' 
+  | 'AUTHENTICATED' 
+  | 'UNASSIGNED';
+
+export interface AuthContextValue {
   user: User | null;
   role: UserRole | null;
-  loading: boolean;
+  status: AuthStatus;
 }
 
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  role: null,
-  loading: true,
-});
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

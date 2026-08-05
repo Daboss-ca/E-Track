@@ -6,15 +6,14 @@ import { useAuth } from './hooks/useAuth';
 import AuthPage from './pages/AuthPage';
 import { supabase } from './lib/supabase';
 
-// Faculty Views
 import SubmitRequestPage from './pages/faculty/SubmitRequestPage';
 import RequestLedgerPage from './pages/faculty/RequestLedgerPage';
 import ActivePickupsPage from './pages/faculty/ActivePickupsPage';
 import DisposalHistoryPage from './pages/faculty/DisposalHistoryPage';
 import { UserDashboard } from './pages/faculty/UserDashboard';
 
-// Custodian View
 import ValidationHubPage from './pages/custodian/ValidationHubPage';
+import { ReturnSlipGenerator } from './pages/custodian/ReturnSlipGenerator';
 
 export type FacultyAppView = 
   | 'dashboard' 
@@ -23,24 +22,27 @@ export type FacultyAppView =
   | 'tracking-active' 
   | 'tracking-history';
 
-// 1. Sub-component para sa Faculty Navigation
 function FacultyLayout() {
   const [currentView, setCurrentView] = useState<FacultyAppView>('dashboard');
+
+  const handleNavigate = (view: string) => {
+    setCurrentView(view as FacultyAppView);
+  };
 
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <UserDashboard currentNav={currentView} onNavigate={(v) => setCurrentView(v as FacultyAppView)} />;
+        return <UserDashboard currentNav={currentView} onNavigate={handleNavigate} />;
       case 'requests-new':
-        return <SubmitRequestPage onNavigate={(v) => setCurrentView(v as FacultyAppView)} />;
+        return <SubmitRequestPage onNavigate={handleNavigate} />;
       case 'requests-ledger':
-        return <RequestLedgerPage onNavigate={(v) => setCurrentView(v as FacultyAppView)} />;
+        return <RequestLedgerPage onNavigate={handleNavigate} />;
       case 'tracking-active':
-        return <ActivePickupsPage onNavigate={(v) => setCurrentView(v as FacultyAppView)} />;
+        return <ActivePickupsPage onNavigate={handleNavigate} />;
       case 'tracking-history':
-        return <DisposalHistoryPage onNavigate={(v) => setCurrentView(v as FacultyAppView)} />;
+        return <DisposalHistoryPage onNavigate={handleNavigate} />;
       default:
-        return <SubmitRequestPage currentNav="requests-new" onNavigate={(v) => setCurrentView(v as FacultyAppView)} />;
+        return <SubmitRequestPage onNavigate={handleNavigate} />;
     }
   };
 
@@ -53,52 +55,86 @@ function FacultyLayout() {
   );
 }
 
-// 2. Auth State at Role Switcher
-function AppContent() {
-  const { user, role, loading } = useAuth();
+type CustodianAppView = 'validationHub' | 'return-slip';
 
-  if (loading) {
+function CustodianLayout() {
+  const [currentView, setCurrentView] = useState<CustodianAppView>('validationHub');
+
+  const handleNavigate = (view: string) => {
+    setCurrentView(view as CustodianAppView);
+  };
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'validationHub':
+        return <ValidationHubPage currentNav={currentView} onNavigate={handleNavigate} />;
+      case 'return-slip':
+        return <ReturnSlipGenerator currentNav={currentView} onNavigate={handleNavigate} />;
+      default:
+        return <ValidationHubPage currentNav={currentView} onNavigate={handleNavigate} />;
+    }
+  };
+
+  return renderView();
+}
+
+export function AppContent() {
+  // Gamitin ang status mula sa useAuth hook
+  const { user, role, status } = useAuth(); 
+
+  // 1. Loading States
+  if (status === 'INITIALIZING' || status === 'FETCHING_PROFILE') {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F3F4F6]">
-        <p className="text-[13px] font-medium text-gray-500 animate-pulse">Loading GreenTrack system...</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-7 w-7 animate-spin rounded-full border-3 border-emerald-600 border-t-transparent" />
+          <p className="text-[13px] font-medium text-gray-500 animate-pulse">
+            Loading E-Track workspace...
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Kapag walang naka-login, ipakita ang AuthPage
-  if (!user) {
+  // 2. Walang nakalogin
+  if (status === 'UNAUTHENTICATED') {
     return <AuthPage />;
   }
 
-  // Role Routing
-  if (role === 'custodian') {
-    return <ValidationHubPage onNavigate={(view) => console.log(view)} />;
-  }
-
-  if (role === 'faculty') {
-    return <FacultyLayout />;
-  }
-
-  // Fallback para sa ibang roles
-  return (
-    <div className="flex h-screen items-center justify-center bg-gray-100 p-6 text-center">
-      <div className="max-w-md rounded-2xl bg-white p-6 shadow-sm border border-gray-200">
-        <h2 className="text-lg font-bold text-gray-800">Welcome, {user.email}</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Your role dashboard (<span className="font-semibold text-gray-700">{role || 'Unassigned'}</span>) is ready.
-        </p>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
-        >
-          Sign Out
-        </button>
+  // 3. Nakalogin pero walang role
+  if (status === 'UNASSIGNED') {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100 p-6 text-center">
+        <div className="max-w-md rounded-2xl bg-white p-6 shadow-sm border border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800">Unassigned Role</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Your account (<span className="font-semibold text-gray-700">{user?.email}</span>) has no assigned active role workspace.
+          </p>
+          <button
+            type="button"
+            onClick={() => supabase.auth.signOut()}
+            className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-// 3. Root App Wrapped with BrowserRouter & AuthProvider
+  // 4. Fully Authenticated with Role (status === 'AUTHENTICATED')
+  switch (role) {
+    case 'faculty':
+      return <FacultyLayout />;
+
+    case 'custodian':
+      return <CustodianLayout />;
+
+    default:
+      // Safety fallback just in case
+      return <AuthPage />;
+  }
+}
 const App: React.FC = () => {
   return (
     <BrowserRouter>
