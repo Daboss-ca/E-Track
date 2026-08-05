@@ -1,6 +1,6 @@
 // src/hooks/useDepartmentReport.ts
 import { useState, useMemo } from 'react';
-import type { EWasteRequest, EquipmentCategory, RequestStatus } from '../types/app';
+import type { EWasteRequest, EquipmentCategory, RequestStatus } from '../../types/app';
 
 export interface ReportFilters {
   startDate: string;
@@ -13,7 +13,6 @@ export function useDepartmentReport(initialLedger: EWasteRequest[]) {
   const departmentCode = 'CICS';
   const departmentName = 'College of Information and Computing Sciences';
 
-  // Filter States
   const [filters, setFilters] = useState<ReportFilters>({
     startDate: '2026-01-01',
     endDate: new Date().toISOString().split('T')[0],
@@ -23,28 +22,21 @@ export function useDepartmentReport(initialLedger: EWasteRequest[]) {
 
   const [isExporting, setIsExporting] = useState(false);
 
-  // Filtered Ledger based on user filters
   const filteredRequests = useMemo(() => {
     return initialLedger.filter((req) => {
-      // Date filter
       if (filters.startDate && req.dateSubmitted < filters.startDate) return false;
       if (filters.endDate && req.dateSubmitted > filters.endDate) return false;
-
-      // Category filter
       if (filters.category !== 'All' && req.category !== filters.category) return false;
-
-      // Status filter
       if (filters.status !== 'All' && req.status !== filters.status) return false;
 
       return true;
     });
   }, [initialLedger, filters]);
 
-  // Computed Summary Statistics
   const statistics = useMemo(() => {
     const totalRequests = filteredRequests.length;
     
-    // Total quantity of items across all filtered requests
+  
     const totalItemsCount = filteredRequests.reduce((acc, req) => {
       const itemsSum = req.equipmentItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
       return acc + itemsSum;
@@ -70,7 +62,7 @@ export function useDepartmentReport(initialLedger: EWasteRequest[]) {
     };
   }, [filteredRequests]);
 
-  // Filter Actions
+
   const updateFilter = (key: keyof ReportFilters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -84,7 +76,6 @@ export function useDepartmentReport(initialLedger: EWasteRequest[]) {
     });
   };
 
-  // Export Action Mock
   const exportReport = (format: 'PDF' | 'CSV') => {
     setIsExporting(true);
     setTimeout(() => {

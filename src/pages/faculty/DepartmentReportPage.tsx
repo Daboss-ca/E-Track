@@ -4,9 +4,9 @@ import { FileText, Download, RotateCcw, Filter } from 'lucide-react';
 import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { useDepartmentReport } from '../../hooks/useDepartmentReport';
-import { useEWasteForm } from '../../hooks/useEWasteForm';
-import type { UserRole, EquipmentCategory } from '../../types/app';
+import { useDepartmentReport } from '../../hooks/faculty/useDepartmentReport';
+import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
+import type { EquipmentCategory } from '../../types/app';
 
 const CATEGORY_OPTIONS: (EquipmentCategory | 'All')[] = [
   'All',
@@ -29,7 +29,6 @@ interface DepartmentReportPageProps {
 const DepartmentReportPage: React.FC<DepartmentReportPageProps> = ({ currentNav, onNavigate }) => {
   const activeNav = currentNav || 'reports';
   
-  const [role, setRole] = useState<UserRole>('Faculty');
   const [headerSearch, setHeaderSearch] = useState('');
   const [showSettings, setShowSettings] = useState(false);
 
@@ -44,10 +43,7 @@ const DepartmentReportPage: React.FC<DepartmentReportPageProps> = ({ currentNav,
         <Sidebar
           activeId={activeNav}
           onNavigate={onNavigate}
-          userName="Miguel Santos"
-          userRole={`${role} · ${departmentCode}`}
           onOpenSettings={() => setShowSettings(true)}
-          onLogout={() => window.alert('Logged out')}
         />
       </div>
 
@@ -58,9 +54,6 @@ const DepartmentReportPage: React.FC<DepartmentReportPageProps> = ({ currentNav,
             onSearchChange={setHeaderSearch}
             notifications={[]}
             onMarkAllRead={() => {}}
-            currentRole={role}
-            onRoleChange={setRole}
-            userName="Miguel Santos"
           />
         </div>
 

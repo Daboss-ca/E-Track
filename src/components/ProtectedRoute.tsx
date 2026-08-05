@@ -1,7 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useAppState } from '../context/AppStateContext';
 
 interface Props {
   children: React.ReactNode;
@@ -10,24 +9,24 @@ interface Props {
 
 function normalizeRole(role: string | null | undefined) {
   if (!role) return undefined;
-  if (role === 'offc_staff') return 'officeStaff';
+  if (role === 'offc_staff' || role === 'office_staff') {
+    return 'faculty';
+  }
   return role;
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: Props) {
-  const { user, role, loading } = useAuth();
-  const { activeRole } = useAppState();
+  const { user, role, status } = useAuth();
 
-  if (loading) return <div>Loading...</div>;
+  const isLoading = status === 'INITIALIZING' || status === 'FETCHING_PROFILE';
+
+  if (isLoading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/" replace />;
 
-  const effectiveRole = normalizeRole(activeRole) || normalizeRole(role);
-  const actualRole = normalizeRole(role);
+  const effectiveRole = normalizeRole(role);
   const isAllowed = effectiveRole ? allowedRoles.includes(effectiveRole) : false;
-  const isActualAllowed = actualRole ? allowedRoles.includes(actualRole) : false;
 
-  if (!isAllowed && !isActualAllowed) return <div>Unauthorized</div>;
+  if (!isAllowed) return <div>Unauthorized</div>;
 
   return <>{children}</>;
 }
-

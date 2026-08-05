@@ -14,6 +14,7 @@ import { UserDashboard } from './pages/faculty/UserDashboard';
 
 import ValidationHubPage from './pages/custodian/ValidationHubPage';
 import { ReturnSlipGenerator } from './pages/custodian/ReturnSlipGenerator';
+import InterOfficeMonitoringPage from './pages/custodian/InterOfficeMonitoringPage';
 
 export type FacultyAppView = 
   | 'dashboard' 
@@ -23,10 +24,13 @@ export type FacultyAppView =
   | 'tracking-history';
 
 function FacultyLayout() {
-  const [currentView, setCurrentView] = useState<FacultyAppView>('dashboard');
+  const [currentView, setCurrentView] = useState<FacultyAppView>(() => {
+    return (localStorage.getItem('faculty_current_view') as FacultyAppView) || 'dashboard';
+  });
 
   const handleNavigate = (view: string) => {
     setCurrentView(view as FacultyAppView);
+    localStorage.setItem('faculty_current_view', view);
   };
 
   const renderView = () => {
@@ -34,9 +38,9 @@ function FacultyLayout() {
       case 'dashboard':
         return <UserDashboard currentNav={currentView} onNavigate={handleNavigate} />;
       case 'requests-new':
-        return <SubmitRequestPage onNavigate={handleNavigate} />;
+        return <SubmitRequestPage currentNav={currentView} onNavigate={handleNavigate} />;
       case 'requests-ledger':
-        return <RequestLedgerPage onNavigate={handleNavigate} />;
+        return <RequestLedgerPage currentNav={currentView} onNavigate={handleNavigate} />;
       case 'tracking-active':
         return <ActivePickupsPage onNavigate={handleNavigate} />;
       case 'tracking-history':
@@ -55,13 +59,16 @@ function FacultyLayout() {
   );
 }
 
-type CustodianAppView = 'validationHub' | 'return-slip';
+type CustodianAppView = 'validationHub' | 'return-slip' | 'inter-office-monitoring';
 
 function CustodianLayout() {
-  const [currentView, setCurrentView] = useState<CustodianAppView>('validationHub');
+  const [currentView, setCurrentView] = useState<CustodianAppView>(() => {
+    return (localStorage.getItem('custodian_current_view') as CustodianAppView) || 'inter-office-monitoring';
+  });
 
-  const handleNavigate = (view: string) => {
+  const handleNavigate = (view: string) => {  
     setCurrentView(view as CustodianAppView);
+    localStorage.setItem('custodian_current_view', view);
   };
 
   const renderView = () => {
@@ -70,6 +77,8 @@ function CustodianLayout() {
         return <ValidationHubPage currentNav={currentView} onNavigate={handleNavigate} />;
       case 'return-slip':
         return <ReturnSlipGenerator currentNav={currentView} onNavigate={handleNavigate} />;
+      case 'inter-office-monitoring':
+        return <InterOfficeMonitoringPage currentNav={currentView} onNavigate={handleNavigate} />;
       default:
         return <ValidationHubPage currentNav={currentView} onNavigate={handleNavigate} />;
     }
@@ -79,11 +88,9 @@ function CustodianLayout() {
 }
 
 export function AppContent() {
-  // Gamitin ang status mula sa useAuth hook
   const { user, role, status } = useAuth(); 
 
-  // 1. Loading States
-  if (status === 'INITIALIZING' || status === 'FETCHING_PROFILE') {
+  if (status === 'INITIALIZING' || (status === 'FETCHING_PROFILE' && !user)) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F3F4F6]">
         <div className="flex flex-col items-center gap-3">
@@ -96,12 +103,10 @@ export function AppContent() {
     );
   }
 
-  // 2. Walang nakalogin
   if (status === 'UNAUTHENTICATED') {
     return <AuthPage />;
   }
 
-  // 3. Nakalogin pero walang role
   if (status === 'UNASSIGNED') {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 p-6 text-center">
@@ -122,19 +127,18 @@ export function AppContent() {
     );
   }
 
-  // 4. Fully Authenticated with Role (status === 'AUTHENTICATED')
-  switch (role) {
+  const effectiveRole = (role === 'offc_staff') ? 'faculty' : role;
+
+  switch (effectiveRole) {
     case 'faculty':
       return <FacultyLayout />;
-
     case 'custodian':
       return <CustodianLayout />;
-
     default:
-      // Safety fallback just in case
       return <AuthPage />;
   }
 }
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>

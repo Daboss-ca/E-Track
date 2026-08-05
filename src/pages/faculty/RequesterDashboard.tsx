@@ -5,9 +5,9 @@ import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
 import StatusBadge from '../../components/ui/StatusBadge';
 import FileDropzone from '../../components/ui/fileDropzone';
-import { useEWasteForm } from '../../hooks/useEWasteForm';
+import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
 import { RequestFormCard } from '../../components/dashboard/RequestFormCard';
-import type { EWasteRequest, EquipmentCategory, UserRole } from '../../types/app';
+import type { EWasteRequest, EquipmentCategory   } from '../../types/app';
 
 const CATEGORY_OPTIONS: EquipmentCategory[] = [
   'IT Equipment',
@@ -27,7 +27,6 @@ interface RequesterDashboardProps {
 const RequesterDashboard: React.FC<RequesterDashboardProps> = ({ currentNav, onNavigate }) => {
   const activeNav = currentNav || 'requests-new';
   
-  const [role, setRole] = useState<UserRole>('Faculty');
   const [headerSearch, setHeaderSearch] = useState('');
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -64,10 +63,7 @@ const RequesterDashboard: React.FC<RequesterDashboardProps> = ({ currentNav, onN
         <Sidebar
           activeId={activeNav}
           onNavigate={handleNavigation}
-          userName="Miguel Santos"
-          userRole={`${role} · ${departmentCode}`}
           onOpenSettings={() => setShowSettings(true)}
-          onLogout={() => window.alert('Logged out')}
         />
       </div>
 
@@ -78,9 +74,6 @@ const RequesterDashboard: React.FC<RequesterDashboardProps> = ({ currentNav, onN
             onSearchChange={setHeaderSearch}
             notifications={[]}
             onMarkAllRead={() => {}}
-            currentRole={role}
-            onRoleChange={setRole}
-            userName="Miguel Santos"
           />
         </div>
 

@@ -4,7 +4,7 @@ import { Eye, Send, Trash2, Plus, X } from 'lucide-react';
 import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
 import FileDropzone from '../../components/ui/fileDropzone';
-import { useEWasteForm } from '../../hooks/useEWasteForm';
+import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
 import { RequestFormCard } from '../../components/dashboard/RequestFormCard';
 import type { EquipmentCategory, UserRole } from '../../types/app';
 
