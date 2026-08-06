@@ -5,7 +5,7 @@ import Sidebar from '../../components/layouts/Sidebar';
 import TopHeader from '../../components/layouts/TopBar';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
-import type { EWasteRequest, UserRole } from '../../types/app';
+import type { EWasteRequest } from '../../types/app';
 
 interface RequestLedgerPageProps {
   currentNav?: string;
@@ -15,22 +15,42 @@ interface RequestLedgerPageProps {
 const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNavigate }) => {
   const activeNav = currentNav || 'requests-ledger';
   
-  const [role, setRole] = useState<UserRole>('Faculty');
   const [headerSearch, setHeaderSearch] = useState('');
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<EWasteRequest | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
-  const { ledger, departmentCode } = useEWasteForm();
+  const { ledger } = useEWasteForm();
 
-  const filteredLedger = ledger.filter((req) => {
+  const flattenedLedger = ledger.flatMap((req) => {
+    if (!req.equipmentItems || req.equipmentItems.length === 0) {
+      return [
+        {
+          rowId: `${req.id}-empty`,
+          request: req,
+          itemDescription: 'No equipment items listed',
+          itemQuantity: 0,
+        },
+      ];
+    }
+    return req.equipmentItems.map((item) => ({
+      rowId: item.id,
+      request: req,
+      itemDescription: item.description,
+      itemQuantity: item.quantity,
+    }));
+  });
+
+  const filteredLedger = flattenedLedger.filter((row) => {
     const q = ledgerSearch.trim().toLowerCase();
     if (!q) return true;
+    
     return (
-      req.trackingCode.toLowerCase().includes(q) ||
-      req.itemName.toLowerCase().includes(q) ||
-      req.category.toLowerCase().includes(q) ||
-      req.status.toLowerCase().includes(q)
+      row.request.trackingCode.toLowerCase().includes(q) ||
+      row.request.itemName.toLowerCase().includes(q) ||
+      row.request.category.toLowerCase().includes(q) ||
+      row.request.status.toLowerCase().includes(q) ||
+      row.itemDescription.toLowerCase().includes(q)
     );
   });
 
@@ -40,10 +60,7 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNav
         <Sidebar
           activeId={activeNav}
           onNavigate={onNavigate}
-          userName="Miguel Santos"
-          userRole={`${role} · ${departmentCode}`}
           onOpenSettings={() => setShowSettings(true)}
-          onLogout={() => window.alert('Logged out')}
         />
       </div>
 
@@ -54,9 +71,6 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNav
             onSearchChange={setHeaderSearch}
             notifications={[]}
             onMarkAllRead={() => {}}
-            currentRole={role}
-            onRoleChange={setRole}
-            userName="Miguel Santos"
           />
         </div>
 
@@ -72,14 +86,14 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNav
 
           <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[14px] font-semibold text-gray-800">All Requests</h2>
+              <h2 className="text-[14px] font-semibold text-gray-800">All Equipment Items</h2>
               <div className="relative w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={ledgerSearch}
                   onChange={(e) => setLedgerSearch(e.target.value)}
-                  placeholder="Search ledger..."
+                  placeholder="Search tracking, batch, or item..."
                   className="w-full rounded-full border border-gray-200 py-2 pl-8 pr-3 text-[12.5px] focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
@@ -90,38 +104,47 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNav
                 <thead>
                   <tr className="border-b border-gray-100 text-[11.5px] uppercase tracking-wide text-gray-400">
                     <th className="py-2 font-medium">Tracking Code</th>
-                    <th className="py-2 font-medium">Item</th>
-                    <th className="py-2 font-medium">Category</th>
+                    <th className="py-2 font-medium">Batch Name</th>
+                    <th className="py-2 font-medium">Equipment Description</th>
+                    <th className="py-2 font-medium">Qty</th>
                     <th className="py-2 font-medium">Date</th>
                     <th className="py-2 font-medium">Status</th>
                     <th className="py-2 font-medium">Lifecycle</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLedger.map((req) => (
-                    <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
-                      <td className="py-3 font-medium text-gray-700">{req.trackingCode}</td>
-                      <td className="py-3 text-gray-600">{req.itemName}</td>
-                      <td className="py-3 text-gray-500">{req.category}</td>
-                      <td className="py-3 text-gray-500">{req.dateSubmitted}</td>
+                  {filteredLedger.map((row) => (
+                    <tr key={row.rowId} className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+                      <td className="py-3 font-medium text-gray-700">{row.request.trackingCode}</td>
+                      <td className="py-3 text-gray-600 font-medium">
+                        {row.request.itemName}
+                        <div className="text-[11px] font-normal text-gray-400 mt-0.5">{row.request.category}</div>
+                      </td>
+                      <td className="py-3 text-[12.5px] text-gray-700">
+                        {row.itemDescription}
+                      </td>
+                      <td className="py-3 font-semibold text-gray-700">
+                        {row.itemQuantity > 0 ? row.itemQuantity : '-'}
+                      </td>
+                      <td className="py-3 text-gray-500">{row.request.dateSubmitted}</td>
                       <td className="py-3">
-                        <StatusBadge status={req.status} size="sm" />
+                        <StatusBadge status={row.request.status} size="sm" />
                       </td>
                       <td className="py-3">
                         <button
                           type="button"
-                          onClick={() => setSelectedRequest(req)}
+                          onClick={() => setSelectedRequest(row.request)}
                           className="rounded-lg border border-gray-200 px-2.5 py-1 text-[12px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                         >
-                          Track
+                          Track Batch
                         </button>
                       </td>
                     </tr>
                   ))}
                   {filteredLedger.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-6 text-center text-[12.5px] text-gray-400">
-                        No matching requests found.
+                      <td colSpan={7} className="py-6 text-center text-[12.5px] text-gray-400">
+                        No matching equipment items found.
                       </td>
                     </tr>
                   )}
@@ -132,13 +155,14 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNav
         </main>
       </div>
 
+      {/* Lifecycle Modal */}
       {selectedRequest && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-[16px] font-bold text-gray-900">
                 <Recycle className="h-4 w-4 text-emerald-600" strokeWidth={1.75} />
-                Lifecycle Status
+                Batch Lifecycle Status
               </h3>
               <button
                 type="button"
@@ -201,6 +225,7 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = ({ currentNav, onNav
         </div>
       )}
 
+      {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">

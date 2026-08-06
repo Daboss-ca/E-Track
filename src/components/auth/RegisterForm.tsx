@@ -1,25 +1,35 @@
 import { useState } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
-import { User, Mail, IdCard, ChevronDown, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import type { RegisterFormData, UserRole } from '../../types/auth';
+import { User, Mail, IdCard, ChevronDown, Lock, AlertCircle, Eye, EyeOff, Building2 } from 'lucide-react';
+import type { RegisterFormData as AuthRegisterFormData, UserRole } from '../../types/auth';
 import { ROLE_OPTIONS } from '../../types/auth';
 
-
 interface RegisterFormProps {
-  onSubmit?: (data: RegisterFormData) => void;
+  onSubmit?: (data: AuthRegisterFormData) => void;
   isSubmitting?: boolean;
   error?: string | null;
 }
+
+// Listahan ng mga departamento para sa Faculty at Custodian
+const DEPARTMENT_OPTIONS = [
+  { code: 'CICS', name: 'College of Information and Computing Sciences' },
+  { code: 'CEIT', name: 'College of Engineering and Information Technology' },
+  { code: 'CAS', name: 'College of Arts and Sciences' },
+  { code: 'CAFENR', name: 'College of Agriculture, Food, Environment and Natural Resources' },
+  { code: 'CON', name: 'College of Nursing' },
+];
 
 export default function RegisterForm({
   onSubmit,
   isSubmitting = false,
   error = null,
 }: RegisterFormProps) {
-  const [formData, setFormData] = useState<RegisterFormData>({
+
+  const [formData, setFormData] = useState<AuthRegisterFormData>({
     fullName: '',
     cvsuEmail: '',
     role: 'faculty',
+    departmentCode: '',
     password: '',
     confirmPassword: '',
   });
@@ -28,20 +38,31 @@ export default function RegisterForm({
   const [showPassword, setShowPassword] = useState(false);
 
   const handleTextChange =
-    (field: keyof Omit<RegisterFormData, 'role'>) => 
+    (field: keyof Omit<AuthRegisterFormData, 'role'>) => 
     (e: ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
       if (localError) setLocalError(null);
     };
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setFormData((prev) => ({ ...prev, role: e.target.value as UserRole }));
+    const newRole = e.target.value as UserRole;
+    setFormData((prev) => ({ 
+      ...prev, 
+      role: newRole,
+      departmentCode: '' // I-reset ang value kapag nagpalit ng role para maiwasan ang maling data
+    }));
+    if (localError) setLocalError(null);
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLocalError(null);
     
+    if (!formData.departmentCode) {
+      setLocalError('Please select or enter your Department / Office / Assignment.');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setLocalError('Passwords do not match. Please try again.');
       return;
@@ -56,6 +77,9 @@ export default function RegisterForm({
   };
 
   const displayError = localError || error;
+
+  // Aling roles ang gagamit ng dropdown vs manual input
+  const isDropdownRole = formData.role === 'faculty' || formData.role === 'custodian';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -128,6 +152,50 @@ export default function RegisterForm({
         </span>
       </div>
 
+      {/* Conditional Department / Office Input Field */}
+      {isDropdownRole ? (
+        /* Faculty & Custodian: Dropdown */
+        <div className="relative flex items-stretch rounded-md bg-white border border-gray-300 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 transition-all overflow-hidden">
+          <span className="flex items-center justify-center w-12 shrink-0 text-gray-400">
+            <Building2 className="w-5 h-5" strokeWidth={1.5} />
+          </span>
+          <select
+            name="departmentCode"
+            required
+            value={formData.departmentCode}
+            onChange={(e) => setFormData((prev) => ({ ...prev, departmentCode: e.target.value }))}
+            className="flex-1 min-w-0 appearance-none bg-transparent px-3 py-2.5 text-sm text-gray-900 outline-none cursor-pointer"
+          >
+            <option value="" disabled>Select Department Code</option>
+            {DEPARTMENT_OPTIONS.map((dept) => (
+              <option key={dept.code} value={dept.code}>
+                {dept.code} - {dept.name}
+              </option>
+            ))}
+          </select>
+          <span className="flex items-center justify-center w-9 shrink-0 text-gray-400 pointer-events-none">
+            <ChevronDown className="w-4 h-4" strokeWidth={2} />
+          </span>
+        </div>
+      ) : (
+        /* Office Staff & Segregator: Manual Text Input */
+        <div className="flex items-stretch rounded-md bg-white border border-gray-300 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 transition-all overflow-hidden">
+          <span className="flex items-center justify-center w-12 shrink-0 text-gray-400">
+            <Building2 className="w-5 h-5" strokeWidth={1.5} />
+          </span>
+          <input
+            name="departmentCode"
+            type="text"
+            required
+            value={formData.departmentCode}
+            onChange={handleTextChange('departmentCode')}
+            placeholder={formData.role === 'offc_staff' ? "Office Name (e.g., Supply Office)" : "Assignment Area (e.g., Materials Recovery Facility)"}
+            className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none"
+          />
+        </div>
+      )}
+
+      {/* Password */}
       <div className="flex items-stretch rounded-md bg-white border border-gray-300 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 transition-all overflow-hidden">
         <span className="flex items-center justify-center w-12 shrink-0 text-gray-400">
           <Lock className="w-5 h-5" strokeWidth={1.5} />
@@ -150,6 +218,7 @@ export default function RegisterForm({
         </button>
       </div>
 
+      {/* Confirm Password */}
       <div className="flex items-stretch rounded-md bg-white border border-gray-300 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 transition-all overflow-hidden">
         <span className="flex items-center justify-center w-12 shrink-0 text-gray-400">
           <Lock className="w-5 h-5" strokeWidth={1.5} />

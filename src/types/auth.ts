@@ -12,6 +12,8 @@ export const ROLE_OPTIONS: ROLE_OPTION[] = [
   { value: 'custodian', label: 'Custodian' },
 ];
 
+
+
 export interface LoginFormData {
   identifier: string;
   password: string;
@@ -21,6 +23,7 @@ export interface RegisterFormData {
   fullName: string;
   cvsuEmail: string;
   role: UserRole;
+  departmentCode: string;
   password: string;
   confirmPassword: string;
 }
