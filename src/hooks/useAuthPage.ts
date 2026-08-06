@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { UserRole } from '../types/auth';
+import type { RegisterFormData, UserRole } from '../types/auth';
 
 export type AuthView = 'login' | 'register';
 
@@ -15,13 +15,6 @@ export interface LoginFormData {
   password: string;
 }
 
-export interface RegisterFormData {
-  cvsuEmail: string;
-  password: string;
-  fullName: string;
-  role: string;
-}
-
 const getErrorMessage = (error: SupabaseAuthError | null) => {
   if (!error) return null;
   switch (error.code) {
@@ -33,20 +26,24 @@ const getErrorMessage = (error: SupabaseAuthError | null) => {
 };
 
 const validateRegisterInput = (data: RegisterFormData) => {
+  if (!data.cvsuEmail || !data.password || !data.fullName || !data.departmentCode) {
+    throw new Error('All fields including department are required.');
+  }
   if (!data.cvsuEmail || !data.password || !data.fullName) throw new Error('All fields are required.');
   if (!data.cvsuEmail.endsWith('@cvsu.edu.ph')) throw new Error('Please use your official CvSU email.');
   if (data.password.length < 6) throw new Error('Password must be at least 6 characters.');
 };
 
 const getRouteByRole = (role: string): string => {
+  const normalizedRole = role === 'office_staff' ? 'offc_staff' : role;
   const routes: Record<string, string> = {
     admin: '/admin',
     faculty: '/faculty',
-    office_staff: '/office-staff',
+    offc_staff: '/faculty',
     custodian: '/custodian',
     segregator: '/segregator',
   };
-  return routes[role] || '/';
+  return routes[normalizedRole] || '/';
 };
 
 export function useAuthPage() {
@@ -95,7 +92,7 @@ export function useAuthPage() {
       const { error } = await supabase.auth.signUp({
         email: data.cvsuEmail,
         password: data.password,
-        options: { data: { full_name: data.fullName, role: data.role } },
+        options: { data: { full_name: data.fullName, role: data.role, department_code: data.departmentCode} },
       });
       if (error) throw error;
       setSuccessMessage('Registration successful!');
