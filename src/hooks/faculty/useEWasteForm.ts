@@ -54,11 +54,12 @@ export function useEWasteForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ledger, setLedger] = useState<EWasteRequest[]>([]);
 
-  // Fetch real-time requests from Supabase work_orders table
   const fetchLedger = useCallback(async () => {
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData.user) return;
+
+      const currentUserName = authData.user.user_metadata?.full_name || authData.user.email || 'Authenticated User';
 
       const { data, error } = await supabase
         .from('work_orders')
@@ -75,7 +76,6 @@ export function useEWasteForm() {
       const typedData = (data || []) as SupabaseWorkOrderRecord[];
 
       const formattedLedger: EWasteRequest[] = typedData.map((order) => {
-        // Binago sa valid type union: 'Pending Approval' sa halip na 'Pending'
         const status: RequestStatus = order.status || 'Pending Approval';
         
         return {
@@ -85,7 +85,7 @@ export function useEWasteForm() {
           category: order.category,
           departmentCode: order.department_code || departmentCode,
           departmentName: 'College of Information and Computing Sciences',
-          requestedBy: 'Miguel Santos',
+          requestedBy: currentUserName, // Real user data inserted here
           dateSubmitted: order.request_date,
           status: status,
           photoCount: order.request_photos?.length || 0,
@@ -103,7 +103,7 @@ export function useEWasteForm() {
               isComplete: true, 
               isCurrent: false, 
               completedAt: order.request_date, 
-              completedBy: 'Miguel Santos' 
+              completedBy: currentUserName // Real user data inserted here
             },
             { 
               stage: 'storage_intake' as LifecycleStage, 
@@ -204,7 +204,7 @@ export function useEWasteForm() {
           department_code: departmentCode,
           request_date: date,
           tracking_code: trackingCodePreview,
-          status: 'Pending Approval' // Binago upang umayon sa RequestStatus type
+          status: 'Pending Approval' 
         })
         .select()
         .single();

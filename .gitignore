@@ -23,3 +23,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing & Code Coverage
+coverage/
+*.lcov
+.jest/
+.jest-cache/
+.ts-jest/
+*.test.log
