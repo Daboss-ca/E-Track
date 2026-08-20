@@ -5,6 +5,8 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import AuthPage from './pages/AuthPage';
 import { supabase } from './lib/supabase';
+import AppLayout from './components/layouts/AppLayout';
+import { Grid, FileText, List, Truck, History, CheckCircle, Monitor } from 'lucide-react';
 
 import SubmitRequestPage from './pages/faculty/SubmitRequestPage';
 import RequestLedgerPage from './pages/faculty/RequestLedgerPage';
@@ -27,6 +29,7 @@ function FacultyLayout() {
   const [currentView, setCurrentView] = useState<FacultyAppView>(() => {
     return (localStorage.getItem('faculty_current_view') as FacultyAppView) || 'dashboard';
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleNavigate = (view: string) => {
     setCurrentView(view as FacultyAppView);
@@ -50,12 +53,24 @@ function FacultyLayout() {
     }
   };
 
+  const facultyNavItems = [
+    { id: 'dashboard', name: 'Dashboard', icon: <Grid className="h-5 w-5" /> },
+    { id: 'requests-new', name: 'Submit Request', icon: <FileText className="h-5 w-5" /> },
+    { id: 'requests-ledger', name: 'Request Ledger', icon: <List className="h-5 w-5" /> },
+    { id: 'tracking-active', name: 'Active Pickups', icon: <Truck className="h-5 w-5" /> },
+    { id: 'tracking-history', name: 'Disposal History', icon: <History className="h-5 w-5" /> },
+  ];
+
   return (
-    <div className="min-h-screen w-full bg-[#F8F9FA] font-sans antialiased flex flex-col">
-      <div className="flex-1 w-full h-full flex flex-col overflow-x-hidden">
-        {renderView()}
-      </div>
-    </div>
+    <AppLayout
+      activeId={currentView}
+      onNavigate={handleNavigate}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      navItems={facultyNavItems}
+    >
+      {renderView()}
+    </AppLayout>
   );
 }
 
@@ -65,6 +80,7 @@ function CustodianLayout() {
   const [currentView, setCurrentView] = useState<CustodianAppView>(() => {
     return (localStorage.getItem('custodian_current_view') as CustodianAppView) || 'inter-office-monitoring';
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleNavigate = (view: string) => {  
     setCurrentView(view as CustodianAppView);
@@ -84,8 +100,25 @@ function CustodianLayout() {
     }
   };
 
-  return renderView();
+  const custodianNavItems = [
+    { id: 'validationHub', name: 'Validation Hub', icon: <CheckCircle className="h-5 w-5" /> },
+    { id: 'return-slip', name: 'Return Slip', icon: <FileText className="h-5 w-5" /> },
+    { id: 'inter-office-monitoring', name: 'Inter-Office Monitoring', icon: <Monitor className="h-5 w-5" /> },
+  ];
+
+  return (
+    <AppLayout
+      activeId={currentView}
+      onNavigate={handleNavigate}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      navItems={custodianNavItems}
+    >
+      {renderView()}
+    </AppLayout>
+  );
 }
+
 
 export function AppContent() {
   const { user, role, status } = useAuth(); 
@@ -141,11 +174,11 @@ export function AppContent() {
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </BrowserRouter>
   );
 };
 
