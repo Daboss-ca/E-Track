@@ -1,7 +1,7 @@
 // src/components/layouts/AppSidebar.tsx
 import { useSidebar } from '../../hooks/useSidebar';
 import SidebarWidget from './SidebarWidget';
-import { Leaf } from 'lucide-react';
+import logoSvg from '../../assets/logo.svg'; 
 
 export interface NavItemConfig {
   id: string;
@@ -17,6 +17,7 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ activeId, onNavigate, items }: AppSidebarProps) {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const isSidebarVisible = isExpanded || isHovered || isMobileOpen;
 
   return (
     <aside
@@ -27,14 +28,23 @@ export default function AppSidebar({ activeId, onNavigate, items }: AppSidebarPr
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={`py-8 flex items-center gap-3 ${!isExpanded && !isHovered ? 'lg:justify-center' : 'justify-start'}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
-          <Leaf className="h-5 w-5" />
+      {/* Brand Logo Header */}
+      <div className={`py-6 flex items-center ${!isSidebarVisible ? 'lg:justify-center' : 'justify-start'}`}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-transparent p-0">
+          <img 
+            src={logoSvg} 
+            alt="E-WasteTrack Logo" 
+            className="h-full w-full object-contain"
+          />
         </div>
-        {(isExpanded || isHovered || isMobileOpen) && (
-          <div>
-            <p className="text-base font-bold text-gray-900 dark:text-white">E-Track</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">Waste Management</p>
+
+        {/* Scaled Up & Sharp Logo Name */}
+        {isSidebarVisible && (
+          <div className="flex items-center font-['Poppins',sans-serif]">
+            <span className="text-2xl tracking-tight text-gray-900 dark:text-white leading-none">
+              <span className="text-emerald-600 dark:text-emerald-400">Waste</span>
+              <span>Track</span>
+            </span>
           </div>
         )}
       </div>
@@ -42,26 +52,26 @@ export default function AppSidebar({ activeId, onNavigate, items }: AppSidebarPr
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar flex-1">
         <nav className="mb-6 space-y-4">
           <div>
-            {(isExpanded || isHovered || isMobileOpen) && (
+            {isSidebarVisible && (
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                Navigation
+                Menu
               </p>
             )}
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {items.map((item) => {
                 const isActive = activeId === item.id;
                 return (
                   <li key={item.id}>
                     <button
                       onClick={() => onNavigate(item.id)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors ${
+                      className={`flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-150 ${
                         isActive
-                          ? 'bg-emerald-600 text-white shadow-md'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
-                      } ${!isExpanded && !isHovered ? 'lg:justify-center' : ''}`}
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-semibold'
+                          : 'text-gray-600 hover:bg-emerald-500/10 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-emerald-500/15 dark:hover:text-emerald-400'
+                      } ${!isSidebarVisible ? 'lg:justify-center' : ''}`}
                     >
                       <span className="shrink-0">{item.icon}</span>
-                      {(isExpanded || isHovered || isMobileOpen) && <span>{item.name}</span>}
+                      {isSidebarVisible && <span>{item.name}</span>}
                     </button>
                   </li>
                 );
@@ -70,7 +80,7 @@ export default function AppSidebar({ activeId, onNavigate, items }: AppSidebarPr
           </div>
         </nav>
 
-        {(isExpanded || isHovered || isMobileOpen) && <SidebarWidget />}
+        {isSidebarVisible && <SidebarWidget />}
       </div>
     </aside>
   );
