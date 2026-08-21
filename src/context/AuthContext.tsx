@@ -29,6 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Function para sa Sign Out gamit ang Supabase
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setRole(null);
+    setStatus('UNAUTHENTICATED');
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -53,7 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchRole]);
 
   return (
-    <AuthContext.Provider value={{ user, role, status }}>
+    // Isinama na ang signOut sa Context Value
+    <AuthContext.Provider value={{ user, role, status, signOut }}>
       {status !== 'INITIALIZING' && children}
     </AuthContext.Provider>
   );

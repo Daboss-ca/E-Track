@@ -18,7 +18,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
   const inProgressCount = ledger.filter((r) => String(r.status).toLowerCase().includes('progress')).length;
   const completedCount = ledger.filter((r) => String(r.status).toLowerCase().includes('completed')).length;
 
-  // Helper function gamit ang re-usable Badge component
   const renderStatusBadge = (status: string) => {
     const normalized = String(status).toLowerCase();
 
@@ -66,7 +65,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
           </p>
         </div>
         
-        {/* Reusable Primary Button */}
         <Button
           variant="primary"
           size="md"
@@ -77,78 +75,97 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
         </Button>
       </div>
 
-      {/* Statistics Grid */}
+      {/* Statistics Grid - Structured for Equal Card Heights */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              Total Requests
+        {/* Total Requests Card */}
+        <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 shadow-2xs">
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Total Requests
+              </p>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <BarChart3 className="h-4 w-4" />
+              </div>
+            </div>
+            <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
+              {totalRequests}
             </p>
-            <BarChart3 className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
           </div>
-          <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
-            {totalRequests}
-          </p>
-          <p className="mt-2 flex items-center gap-1 text-theme-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <p className="mt-4 flex items-center gap-1 text-theme-xs font-medium text-emerald-600 dark:text-emerald-400">
             <ArrowUpRight className="h-3.5 w-3.5" /> Personal submissions log
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              Pending Requests
+        {/* Pending Requests Card */}
+        <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 shadow-2xs">
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Pending Requests
+              </p>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400">
+                <Clock className="h-4 w-4" />
+              </div>
+            </div>
+            <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
+              {pendingCount}
             </p>
-            <Clock className="h-4 w-4 text-amber-500" />
           </div>
-          <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
-            {pendingCount}
-          </p>
-          <p className="mt-2 text-theme-xs font-medium text-amber-600 dark:text-amber-400">
+          <p className="mt-4 text-theme-xs font-medium text-amber-600 dark:text-amber-400">
             Awaiting initial verification
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              In Progress
+        {/* In Progress Card */}
+        <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 shadow-2xs">
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                In Progress
+              </p>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:text-blue-400">
+                <Truck className="h-4 w-4" />
+              </div>
+            </div>
+            <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
+              {inProgressCount}
             </p>
-            <Truck className="h-4 w-4 text-blue-500" />
           </div>
-          <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
-            {inProgressCount}
-          </p>
-          <p className="mt-2 text-theme-xs font-medium text-blue-600 dark:text-blue-400">
+          <p className="mt-4 text-theme-xs font-medium text-blue-600 dark:text-blue-400">
             Scheduled for collection
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              Completed
+        {/* Completed Card */}
+        <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 shadow-2xs">
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Completed
+              </p>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+            </div>
+            <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
+              {completedCount}
             </p>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
           </div>
-          <p className="mt-3 text-3xl font-bold text-gray-800 dark:text-white/90">
-            {completedCount}
-          </p>
-          <p className="mt-2 text-theme-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <p className="mt-4 text-theme-xs font-medium text-emerald-600 dark:text-emerald-400">
             Successfully recycled
           </p>
         </div>
       </div>
 
       {/* Recent Activity Table Card */}
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <div className="mb-4 flex items-center justify-between">
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 shadow-2xs">
+        <div className="mb-5 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-white/90">
             <Recycle className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
             Recent Activity
           </h2>
           
-          {/* Reusable Outline Button */}
           <Button
             variant="outline"
             size="sm"
@@ -160,35 +177,35 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-theme-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
-                <th className="pb-3 font-semibold">Tracking Code</th>
-                <th className="pb-3 font-semibold">Item Name</th>
-                <th className="pb-3 font-semibold">Category</th>
-                <th className="pb-3 font-semibold">Date Submitted</th>
-                <th className="pb-3 font-semibold">Status</th>
+              <tr className="border-b border-gray-200 dark:border-gray-800 text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <th className="px-4 py-3 font-semibold">Tracking Code</th>
+                <th className="px-4 py-3 font-semibold">Item Name</th>
+                <th className="px-4 py-3 font-semibold">Category</th>
+                <th className="px-4 py-3 font-semibold">Date Submitted</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60">
               {ledger.slice(0, 5).map((req) => (
                 <tr
                   key={req.id}
-                  className="text-theme-sm transition-colors hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+                  className="text-theme-sm transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]"
                 >
-                  <td className="py-3 font-medium text-gray-800 dark:text-white/90">
+                  <td className="px-4 py-3.5 font-medium text-gray-800 dark:text-white/90">
                     {req.trackingCode}
                   </td>
-                  <td className="py-3 text-gray-700 dark:text-gray-300">
+                  <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300">
                     {req.itemName}
                   </td>
-                  <td className="py-3 text-gray-500 dark:text-gray-400">
+                  <td className="px-4 py-3.5 text-gray-500 dark:text-gray-400">
                     {req.category}
                   </td>
-                  <td className="py-3 text-gray-500 dark:text-gray-400">
+                  <td className="px-4 py-3.5 text-gray-500 dark:text-gray-400">
                     {req.dateSubmitted}
                   </td>
-                  <td className="py-3">
+                  <td className="px-4 py-3.5">
                     {renderStatusBadge(req.status)}
                   </td>
                 </tr>
@@ -197,7 +214,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-6 text-center text-theme-sm text-gray-400 dark:text-gray-500"
+                    className="px-4 py-8 text-center text-theme-sm text-gray-400 dark:text-gray-500"
                   >
                     No recent activity found. Submit a request to get started.
                   </td>
