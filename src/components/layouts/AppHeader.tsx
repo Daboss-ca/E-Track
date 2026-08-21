@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-
 import { Link } from "react-router";
 import { useSidebar } from "../../hooks/useSidebar";
 import { ThemeToggleButton } from "../../components/common/ThemeToggleButton";
 import NotificationDropdown from "../../components/header/NotificationDropdown";
 import UserDropdown from "../../components/header/UserDropdown";
+import logoSvg from "../../assets/logo.svg";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -80,20 +80,21 @@ const AppHeader: React.FC = () => {
                 />
               </svg>
             )}
-            {/* Cross Icon */}
           </button>
 
-          <Link to="/" className="lg:hidden">
-            <img
-              className="dark:hidden"
-              src="./images/logo/logo.svg"
-              alt="Logo"
-            />
-            <img
-              className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
-              alt="Logo"
-            />
+          {/* Clean Mobile Branding matching Sidebar */}
+          <Link to="/" className="flex items-center lg:hidden select-none">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-transparent">
+              <img 
+                src={logoSvg} 
+                alt="E - WasteTrack Logo" 
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <span className="font-['Poppins',sans-serif] text-xl tracking-tight text-gray-900 dark:text-white leading-none">
+              <span className="text-emerald-600 dark:text-emerald-400">Waste</span>
+              <span>Track</span>
+            </span>
           </Link>
 
           <button
@@ -157,13 +158,9 @@ const AppHeader: React.FC = () => {
           } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
-            {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
-            {/* <!-- Dark Mode Toggler --> */}
             <NotificationDropdown />
-            {/* <!-- Notification Menu Area --> */}
           </div>
-          {/* <!-- User Area --> */}
           <UserDropdown />
         </div>
       </div>
