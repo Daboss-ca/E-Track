@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Recycle, CheckCircle2, Circle, X } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { useEWasteForm } from '../../hooks/faculty/useEWasteForm';
+import { Modal } from '../../components/ui/Modal/index';
 import type { EWasteRequest } from '../../types/app';
 
 interface RequestLedgerPageProps {
@@ -61,7 +62,7 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = () => {
         </div>
       </div>
 
-      {/* Main Container Card - Binago ang dark:bg sa dark:bg-white/[0.03] */}
+      {/* Main Container Card */}
       <section className="rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-4 sm:p-6 shadow-xs transition-all">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-semibold text-gray-800 dark:text-white">
@@ -186,10 +187,15 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = () => {
         )}
       </section>
 
-      {/* Lifecycle Modal */}
-      {selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900 p-5 sm:p-6 shadow-2xl transition-all">
+      {/* Lifecycle Modal (Refactored to use generic Modal) */}
+      <Modal
+        isOpen={!!selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        showCloseButton={false}
+        className="max-w-md p-5 sm:p-6 border border-gray-100 dark:border-gray-800 shadow-2xl !rounded-2xl transition-all"
+      >
+        {selectedRequest && (
+          <>
             <div className="mb-1 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-base font-bold text-gray-800 dark:text-white">
                 <Recycle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
@@ -261,9 +267,9 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = () => {
                 Close
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 };
