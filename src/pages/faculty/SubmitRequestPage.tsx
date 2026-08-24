@@ -6,6 +6,7 @@ import { useEWasteForm } from '../../hooks/faculty/useSubmitRequest';
 import { RequestFormCard } from '../../components/dashboard/RequestFormCard';
 import Button from '../../components/ui/Button/button';
 import Badge from '../../components/ui/Badge/badge';
+import { Modal } from '../../components/ui/Modal/index'; 
 
 interface SubmitRequestPageProps {
   currentNav?: string;
@@ -178,91 +179,93 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
         <FileDropzone files={formState.photos} onFilesChange={setters.setPhotos} />
       </section>
 
-      {/* Preview Request Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">Preview Request Summary</h3>
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <dl className="space-y-3 text-theme-sm divide-y divide-gray-100 dark:divide-gray-800/60">
-              <div className="flex justify-between pt-2">
-                <dt className="text-gray-500 dark:text-gray-400">Item Name</dt>
-                <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.itemName || '—'}</dd>
-              </div>
-              <div className="flex justify-between pt-2 items-center">
-                <dt className="text-gray-500 dark:text-gray-400">Category</dt>
-                <dd>
-                  <Badge color="info" variant="light" size="sm">{formState.category}</Badge>
-                </dd>
-              </div>
-              <div className="flex justify-between pt-2">
-                <dt className="text-gray-500 dark:text-gray-400">Department</dt>
-                <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.departmentCode}</dd>
-              </div>
-              <div className="flex justify-between pt-2">
-                <dt className="text-gray-500 dark:text-gray-400">Date</dt>
-                <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.date || '—'}</dd>
-              </div>
-              <div className="flex justify-between pt-2 items-center">
-                <dt className="text-gray-500 dark:text-gray-400">Tracking Code</dt>
-                <dd>
-                  <Badge color="success" variant="light" size="sm">
-                    {formState.trackingCodePreview}
-                  </Badge>
-                </dd>
-              </div>
-            </dl>
-            <div className="mt-6 flex justify-end gap-2.5">
-              <Button variant="outline" size="sm" onClick={() => setShowPreview(false)}>
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                startIcon={formState.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
-                onClick={handleFinalSubmit}
-                disabled={formState.loading}
-              >
-                Confirm &amp; Submit
-              </Button>
-            </div>
-          </div>
+      {/* Preview Request Modal (Refactored to use generic Modal) */}
+      <Modal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        showCloseButton={false}
+        className="max-w-lg p-6 border border-gray-200 dark:border-gray-800 shadow-2xl !rounded-2xl"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">Preview Request Summary</h3>
+          <button
+            type="button"
+            onClick={() => setShowPreview(false)}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      )}
+        <dl className="space-y-3 text-theme-sm divide-y divide-gray-100 dark:divide-gray-800/60">
+          <div className="flex justify-between pt-2">
+            <dt className="text-gray-500 dark:text-gray-400">Item Name</dt>
+            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.itemName || '—'}</dd>
+          </div>
+          <div className="flex justify-between pt-2 items-center">
+            <dt className="text-gray-500 dark:text-gray-400">Category</dt>
+            <dd>
+              <Badge color="info" variant="light" size="sm">{formState.category}</Badge>
+            </dd>
+          </div>
+          <div className="flex justify-between pt-2">
+            <dt className="text-gray-500 dark:text-gray-400">Department</dt>
+            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.departmentCode}</dd>
+          </div>
+          <div className="flex justify-between pt-2">
+            <dt className="text-gray-500 dark:text-gray-400">Date</dt>
+            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.date || '—'}</dd>
+          </div>
+          <div className="flex justify-between pt-2 items-center">
+            <dt className="text-gray-500 dark:text-gray-400">Tracking Code</dt>
+            <dd>
+              <Badge color="success" variant="light" size="sm">
+                {formState.trackingCodePreview}
+              </Badge>
+            </dd>
+          </div>
+        </dl>
+        <div className="mt-6 flex justify-end gap-2.5">
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(false)}>
+            Close
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            startIcon={formState.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+            onClick={handleFinalSubmit}
+            disabled={formState.loading}
+          >
+            Confirm &amp; Submit
+          </Button>
+        </div>
+      </Modal>
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">Settings</h3>
-              <button
-                type="button"
-                onClick={() => setShowSettings(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-theme-sm text-gray-500 dark:text-gray-400">
-              Notification configurations and account settings are managed securely.
-            </p>
-            <div className="mt-5 flex justify-end">
-              <Button variant="primary" size="sm" onClick={() => setShowSettings(false)}>
-                Done
-              </Button>
-            </div>
-          </div>
+      {/* Settings Modal (Refactored to use generic Modal) */}
+      <Modal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        showCloseButton={false}
+        className="max-w-sm p-6 border border-gray-200 dark:border-gray-800 shadow-2xl !rounded-2xl"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">Settings</h3>
+          <button
+            type="button"
+            onClick={() => setShowSettings(false)}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      )}
+        <p className="text-theme-sm text-gray-500 dark:text-gray-400">
+          Notification configurations and account settings are managed securely.
+        </p>
+        <div className="mt-5 flex justify-end">
+          <Button variant="primary" size="sm" onClick={() => setShowSettings(false)}>
+            Done
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };
