@@ -18,6 +18,9 @@ import ValidationHubPage from './pages/custodian/ValidationHubPage';
 import { ReturnSlipGenerator } from './pages/custodian/ReturnSlipGenerator';
 import InterOfficeMonitoringPage from './pages/custodian/InterOfficeMonitoringPage';
 
+import SegregatorModule from './pages/segregator/SegregatorModule';
+
+
 export type FacultyAppView = 
   | 'dashboard' 
   | 'requests-new' 
@@ -119,6 +122,10 @@ function CustodianLayout() {
   );
 }
 
+function SegregatorLayout() {
+  return <SegregatorModule />;
+}
+
 
 export function AppContent() {
   const { user, role, status } = useAuth(); 
@@ -167,6 +174,8 @@ export function AppContent() {
       return <FacultyLayout />;
     case 'custodian':
       return <CustodianLayout />;
+    case 'segregator':
+      return <SegregatorLayout />;
     default:
       return <AuthPage />;
   }

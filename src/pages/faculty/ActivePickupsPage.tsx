@@ -54,9 +54,6 @@ const ActivePickupsPage: React.FC<ActivePickupsPageProps> = () => {
             <Truck className="h-6 w-6 text-emerald-600 dark:text-emerald-500" strokeWidth={2} />
             Active Pickups
           </h1>
-          <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-            Monitor scheduled pickups, transport statuses, and assigned property custodians.
-          </p>
         </div>
 
         {/* Search Input */}

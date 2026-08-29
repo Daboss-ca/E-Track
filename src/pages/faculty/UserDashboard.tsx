@@ -58,11 +58,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90">
-            Faculty &amp; Staff Dashboard
+            Dashboard
           </h1>
-          <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-            Monitor and manage your personal electronic waste disposals securely and sustainably.
-          </p>
+
         </div>
         
         <Button
