@@ -21,9 +21,6 @@ const DisposalHistoryPage: React.FC<DisposalHistoryPageProps> = () => {
             <Archive className="h-6 w-6 text-emerald-600 dark:text-emerald-500" strokeWidth={2} />
             Disposal History
           </h1>
-          <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-            Completed e-waste records, certificates of safe disposal, and recycled item logs.
-          </p>
         </div>
 
         {/* Search Box */}

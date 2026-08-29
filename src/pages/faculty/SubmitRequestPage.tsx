@@ -33,9 +33,6 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90">
             Submit E-Waste Request
           </h1>
-          <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-            Log obsolete or non-functioning equipment for secure pickup and disposal.
-          </p>
         </div>
         
         <div className="flex items-center gap-2.5">

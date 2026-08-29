@@ -56,9 +56,6 @@ const RequestLedgerPage: React.FC<RequestLedgerPageProps> = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">
             E-Waste Request Ledger
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            View submitted requests and track their current recycling lifecycle status.
-          </p>
         </div>
       </div>
 
