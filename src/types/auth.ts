@@ -1,4 +1,4 @@
-export type UserRole = 'faculty' | 'offc_staff' | 'segregator' | 'custodian';
+export type UserRole = 'faculty' | 'offc_staff' | 'segregator' | 'custodian' | 'admin';
 
 export interface ROLE_OPTION {
   value: UserRole;
@@ -10,9 +10,8 @@ export const ROLE_OPTIONS: ROLE_OPTION[] = [
   { value: 'offc_staff', label: 'Office Staff' },
   { value: 'segregator', label: 'Segregator' },
   { value: 'custodian', label: 'Custodian' },
+  { value: 'admin', label: 'Admin' }, 
 ];
-
-
 
 export interface LoginFormData {
   identifier: string;
