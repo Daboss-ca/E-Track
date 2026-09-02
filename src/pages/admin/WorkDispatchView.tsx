@@ -2,6 +2,7 @@ import { Search, UserCheck, CheckCircle2, Hash, Building2, User, Clock } from 'l
 import { useWorkDispatch } from '../../hooks/admin/useWorkDispatch';
 import Badge from '../../components/ui/Badge/badge';
 import Button from '../../components/ui/Button/button';
+import { Modal } from '../../components/ui/Modal/index'; 
 
 export function WorkDispatchView() {
   const {
@@ -23,9 +24,6 @@ export function WorkDispatchView() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Work Management & Dispatch</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Review validated Return Slips from the Property Custodian and dispatch dismantling tasks to available workers.
-          </p>
         </div>
         <Badge variant="light" color="info" size="md">
           {slips.filter((s) => s.status === 'Pending Admin Approval').length} Pending Validation
@@ -144,10 +142,15 @@ export function WorkDispatchView() {
         </div>
       </div>
 
-      {/* Dispatch Modal Prompt */}
-      {selectedSlip && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-6">
+      {/* Dispatch Modal Prompt gamit ang Reusable Modal Component */}
+      <Modal
+        isOpen={Boolean(selectedSlip)}
+        onClose={handleCloseDispatchModal}
+        className="max-w-lg p-6 m-4"
+        showCloseButton={false}
+      >
+        {selectedSlip && (
+          <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">Dispatch Task to Segregator</h3>
@@ -215,8 +218,8 @@ export function WorkDispatchView() {
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
