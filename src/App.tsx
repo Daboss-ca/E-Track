@@ -19,6 +19,7 @@ import { ReturnSlipGenerator } from './pages/custodian/ReturnSlipGenerator';
 import InterOfficeMonitoringPage from './pages/custodian/InterOfficeMonitoringPage';
 
 import SegregatorModule from './pages/segregator/SegregatorModule';
+import AdminModule from './pages/admin/AdminModule';
 
 
 export type FacultyAppView = 
@@ -126,6 +127,10 @@ function SegregatorLayout() {
   return <SegregatorModule />;
 }
 
+function AdminLayout() {
+  return <AdminModule />;
+}
+
 
 export function AppContent() {
   const { user, role, status } = useAuth(); 
@@ -176,6 +181,8 @@ export function AppContent() {
       return <CustodianLayout />;
     case 'segregator':
       return <SegregatorLayout />;
+    case 'admin': // <-- Idinagdag para i-render ang Admin module kapag ang role ay admin[cite: 12]
+      return <AdminLayout />;
     default:
       return <AuthPage />;
   }
