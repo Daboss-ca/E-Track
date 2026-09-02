@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { LayoutDashboard, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, ClipboardCheck, Boxes, Users } from 'lucide-react';
 import AppLayout from '../../components/layouts/AppLayout';
 
 import { AdminDashboardView } from './AdminDashboardView';
 import { WorkDispatchView } from './WorkDispatchView';
+import { InventoryControlView } from './InventoryControlView';
+import { PersonnelManagementView } from './PersonnelManagementView';
 
-type AdminAppView = 'dashboard' | 'dispatch';
+type AdminAppView = 'dashboard' | 'dispatch' | 'inventory' | 'personnel';
 
 export function AdminModule() {
   const [currentView, setCurrentView] = useState<AdminAppView>('dashboard');
@@ -19,6 +21,8 @@ export function AdminModule() {
   const adminNavItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { id: 'dispatch', name: 'Work Dispatch', icon: <ClipboardCheck className="h-5 w-5" /> },
+    { id: 'inventory', name: 'Inventory Control', icon: <Boxes className="h-5 w-5" /> },
+    { id: 'personnel', name: 'Personnel & RBAC', icon: <Users className="h-5 w-5" /> },
   ];
 
   const renderView = () => {
@@ -27,6 +31,10 @@ export function AdminModule() {
         return <AdminDashboardView />;
       case 'dispatch':
         return <WorkDispatchView />;
+      case 'inventory':
+        return <InventoryControlView />;
+      case 'personnel':
+        return <PersonnelManagementView />;
       default:
         return <AdminDashboardView />;
     }
