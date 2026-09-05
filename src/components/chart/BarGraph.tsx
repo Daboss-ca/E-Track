@@ -6,19 +6,46 @@ interface BarChartProps {
   seriesData: number[];
 }
 
+function wrapCategoryLabel(label: string, maxLineLength = 16): string[] {
+  const words = label.split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (candidate.length > maxLineLength && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = candidate;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  return lines;
+}
+
 export default function BarChartOne({ categories, seriesData }: BarChartProps) {
+  const mobileHeight = Math.max(280, categories.length * 45);
+  const wrappedCategories = categories.map((label) => wrapCategoryLabel(label));
+
+  // Dynamic color detection o tamang contrast color para sa dark/light mode labels
+  const isDarkMode = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+  const labelColor = isDarkMode ? "#94A3B8" : "#64748B"; // Mas matingkad na Gray para hindi mawala sa dark background
+
   const options: ApexOptions = {
-    colors: ["#059669"], // Primary emerald tone
+    colors: ["#059669"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "bar",
-      height: 300,
+      height: 320,
+      width: "100%",
       toolbar: {
         show: false,
       },
       animations: {
         enabled: true,
-        easing: 'easeinout',
+        easing: "easeinout",
         speed: 800,
       },
     },
@@ -37,7 +64,7 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
       show: false,
     },
     xaxis: {
-      categories: categories,
+      categories: wrappedCategories,
       axisBorder: {
         show: false,
       },
@@ -45,10 +72,12 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
         show: false,
       },
       labels: {
+        rotate: 0,
+        trim: true,
         style: {
-          colors: "#9CA3AF",
+          colors: labelColor, // Ginagamit ang adjusted label color para lumitaw sa dark/light mode
           fontSize: "12px",
-          fontWeight: 500,
+          fontWeight: 600,
         },
       },
     },
@@ -60,16 +89,19 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
         text: undefined,
       },
       labels: {
-        style: { 
-          colors: "#9CA3AF", 
+        style: {
+          colors: labelColor,
           fontSize: "12px",
-          fontWeight: 500,
+          fontWeight: 600,
         },
       },
     },
     grid: {
       borderColor: "rgba(156, 163, 175, 0.15)",
       strokeDashArray: 6,
+      padding: {
+        bottom: 10,
+      },
       yaxis: {
         lines: {
           show: true,
@@ -82,7 +114,7 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
         shade: "light",
         type: "vertical",
         shadeIntensity: 0.4,
-        gradientToColors: ["#34D399"], // Modern mint gradient glow at the top
+        gradientToColors: ["#34D399"],
         inverseColors: false,
         opacityFrom: 0.95,
         opacityTo: 0.7,
@@ -90,7 +122,7 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
       },
     },
     tooltip: {
-      theme: 'dark',
+      theme: "dark",
       x: {
         show: true,
       },
@@ -98,10 +130,59 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
         formatter: (val: number) => `${val} tasks/items`,
       },
       style: {
-        fontSize: '12px',
-        fontFamily: 'Outfit, sans-serif',
+        fontSize: "12px",
+        fontFamily: "Outfit, sans-serif",
       },
     },
+    responsive: [
+      {
+        breakpoint: 768,
+        options: {
+          chart: {
+            height: mobileHeight,
+          },
+          plotOptions: {
+            bar: {
+              horizontal: true,
+              barHeight: "60%",
+              borderRadius: 6,
+              borderRadiusApplication: "end",
+            },
+          },
+          grid: {
+            padding: {
+              bottom: 0,
+            },
+            yaxis: {
+              lines: {
+                show: false,
+              },
+            },
+            xaxis: {
+              lines: {
+                show: true,
+              },
+            },
+          },
+          xaxis: {
+            labels: {
+              style: {
+                fontSize: "11px",
+                colors: labelColor,
+              },
+            },
+          },
+          yaxis: {
+            labels: {
+              style: {
+                fontSize: "11px",
+                colors: labelColor,
+              },
+            },
+          },
+        },
+      },
+    ],
   };
 
   const series = [
@@ -112,10 +193,8 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
   ];
 
   return (
-    <div className="w-full overflow-x-auto custom-scrollbar">
-      <div id="chartOne" className="min-w-[650px] transition-all">
-        <Chart options={options} series={series} type="bar" height={300} />
-      </div>
+    <div id="chartOne" className="w-full transition-all">
+      <Chart options={options} series={series} type="bar" width="100%" height={320} />
     </div>
   );
 }
