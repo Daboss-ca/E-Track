@@ -1,9 +1,11 @@
 import React from 'react';
-import { Search, UserPlus, Shield, UserX, CheckCircle2, Mail, Building } from 'lucide-react';
+import { Search, UserPlus, Shield, Mail, Building } from 'lucide-react';
 import { usePersonnelManagement, SystemUser } from '../../hooks/admin/usePersonnelManagement';
 import Badge from '../../components/ui/Badge/badge';
 import Button from '../../components/ui/Button/button';
 import { Modal } from '../../components/ui/Modal/index';
+import { DataTable } from '../../components/ui/Table';
+import type { DataTableColumn } from '../../components/ui/Table';
 
 export function PersonnelManagementView() {
   const {
@@ -25,12 +27,121 @@ export function PersonnelManagementView() {
 
   const roleOptions = ['All', 'Admin', 'Custodian', 'Segregator', 'Faculty'];
 
+  // Columns definition para sa Personnel Management DataTable na may Dot/Pulse Status
+  const columns: DataTableColumn<SystemUser>[] = [
+    {
+      key: 'fullName',
+      header: 'User Information',
+      dataType: 'identifier',
+      pin: 'left',
+      minWidth: '220px',
+      sortable: true,
+      accessor: (user) => user.fullName,
+      render: (user) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 font-bold text-xs shrink-0">
+            {user.fullName.charAt(0)}
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-gray-900 dark:text-white truncate">{user.fullName}</p>
+            <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5 truncate">
+              <Mail className="h-3 w-3 shrink-0" />
+              {user.email}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'role',
+      header: 'Role & Department',
+      dataType: 'text',
+      minWidth: '180px',
+      sortable: true,
+      accessor: (user) => user.role,
+      render: (user) => (
+        <div className="space-y-1">
+          <Badge
+            variant="light"
+            size="sm"
+            color={
+              user.role === 'Admin'
+                ? 'error'
+                : user.role === 'Custodian'
+                ? 'warning'
+                : user.role === 'Segregator'
+                ? 'success'
+                : 'info'
+            }
+            startIcon={<Shield className="h-3 w-3" />}
+          >
+            {user.role}
+          </Badge>
+          <span className="block text-[11px] text-gray-400 flex items-center gap-1 truncate">
+            <Building className="h-3 w-3 shrink-0" />
+            {user.department}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Account Status',
+      dataType: 'text',
+      minWidth: '140px',
+      sortable: true,
+      accessor: (user) => user.status,
+      render: (user) => {
+        const isActive = user.status === 'Active';
+        return (
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-gray-50 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/50">
+            <span className="relative flex h-2 w-2 shrink-0">
+              {isActive && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              )}
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${
+                  isActive ? 'bg-emerald-500' : 'bg-red-500'
+                }`}
+              ></span>
+            </span>
+            <span
+              className={`text-xs font-semibold ${
+                isActive
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}
+            >
+              {user.status}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'lastLogin',
+      header: 'Last Login',
+      dataType: 'identifier',
+      minWidth: '140px',
+      sortable: true,
+      accessor: (user) => user.lastLogin,
+      render: (user) => (
+        <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+          {user.lastLogin}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header Title & Add Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Personnel Management</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Manage system users, assign role-based access controls (RBAC), and oversee account statuses.
+          </p>
         </div>
         <Button
           variant="primary"
@@ -77,111 +188,42 @@ export function PersonnelManagementView() {
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50/80 text-[11px] uppercase tracking-wider text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 font-bold">User Information</th>
-                <th className="px-6 py-4 font-bold">Role & Department</th>
-                <th className="px-6 py-4 font-bold">Account Status</th>
-                <th className="px-6 py-4 font-bold">Last Login</th>
-                <th className="px-6 py-4 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60">
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-xs text-gray-400 italic">
-                    No personnel records found matching your filters.
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => {
-                  const isActive = user.status === 'Active';
-                  return (
-                    <tr key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 font-bold text-xs">
-                            {user.fullName.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white">{user.fullName}</p>
-                            <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                              <Mail className="h-3 w-3" />
-                              {user.email}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <Badge
-                            variant="light"
-                            size="sm"
-                            color={
-                              user.role === 'Admin'
-                                ? 'error'
-                                : user.role === 'Custodian'
-                                ? 'warning'
-                                : user.role === 'Segregator'
-                                ? 'success'
-                                : 'info'
-                            }
-                            startIcon={<Shield className="h-3 w-3" />}
-                          >
-                            {user.role}
-                          </Badge>
-                          <span className="block text-[11px] text-gray-400 flex items-center gap-1">
-                            <Building className="h-3 w-3" />
-                            {user.department}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <Badge
-                          variant="solid"
-                          size="sm"
-                          color={isActive ? 'success' : 'error'}
-                          startIcon={isActive ? <CheckCircle2 className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
-                        >
-                          {user.status}
-                        </Badge>
-                      </td>
-
-                      <td className="px-6 py-4 text-xs font-mono text-gray-500 dark:text-gray-400">
-                        {user.lastLogin}
-                      </td>
-
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenEditModal(user)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={isActive ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-emerald-600 hover:bg-emerald-50'}
-                          onClick={() => handleToggleStatus(user.id)}
-                        >
-                          {isActive ? 'Deactivate' : 'Activate'}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Personnel DataTable Layout */}
+      <DataTable
+        columns={columns}
+        data={users}
+        getRowId={(user) => user.id}
+        density="default"
+        emptyMessage="No personnel records found matching your filters."
+        rowActions={(user) => {
+          const isActive = user.status === 'Active';
+          return (
+            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenEditModal(user)}
+              >
+                Edit
+              </Button>
+              <div className="w-[95px] flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={
+                    isActive
+                      ? 'w-full justify-center text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/40'
+                      : 'w-full justify-center text-emerald-600 hover:bg-emerald-50 border-emerald-200 dark:border-emerald-900/40'
+                  }
+                  onClick={() => handleToggleStatus(user.id)}
+                >
+                  {isActive ? 'Deactivate' : 'Activate'}
+                </Button>
+              </div>
+            </div>
+          );
+        }}
+      />
 
       {/* Add / Edit User Modal */}
       <Modal

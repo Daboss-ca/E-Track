@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, Boxes, ShieldAlert, RefreshCw, Cpu, Layers } from 'lucide-react';
 import { useInventoryControl } from '../../hooks/admin/useInventoryControl';
 import Badge from '../../components/ui/Badge/badge';
+import { DataTable } from '../../components/ui/Table';
+import type { DataTableColumn } from '../../components/ui/Table';
 
 export function InventoryControlView() {
   const {
@@ -14,6 +16,88 @@ export function InventoryControlView() {
   } = useInventoryControl();
 
   const categories = ['All', 'Hazardous', 'Reusable', 'Recyclable'];
+
+  // Depinisyon ng Columns na may hiwalay na Quantity at Weight (kg)
+  const columns: DataTableColumn<typeof items[number]>[] = [
+    {
+      key: 'componentName',
+      header: 'Component Name',
+      dataType: 'identifier',
+      pin: 'left',
+      sortable: true,
+      accessor: (item) => item.componentName,
+      render: (item) => (
+        <div>
+          <p className="font-bold text-gray-900 dark:text-white">{item.componentName}</p>
+          <span className="text-[11px] text-gray-400">Added: {item.dateAdded}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Classification',
+      dataType: 'text',
+      sortable: true,
+      accessor: (item) => item.category,
+      render: (item) => (
+        <Badge
+          variant="light"
+          size="sm"
+          color={
+            item.category === 'Hazardous'
+              ? 'error'
+              : item.category === 'Reusable'
+              ? 'info'
+              : 'success'
+          }
+        >
+          {item.category}
+        </Badge>
+      ),
+    },
+    {
+      key: 'sourceDevice',
+      header: 'Source Device',
+      dataType: 'identifier',
+      sortable: true,
+      accessor: (item) => item.sourceDevice,
+      render: (item) => (
+        <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{item.sourceDevice}</p>
+      ),
+    },
+    {
+      key: 'quantity',
+      header: 'Quantity',
+      dataType: 'numeric',
+      sortable: true,
+      accessor: (item) => item.quantity,
+      render: (item) => (
+        <span className="font-bold text-gray-900 dark:text-white font-mono">{item.quantity}</span>
+      ),
+    },
+    {
+      key: 'weightKg',
+      header: 'Weight (kg)',
+      dataType: 'numeric',
+      sortable: true,
+      accessor: (item) => item.weightKg,
+      render: (item) => (
+        <span className="font-mono text-gray-800 dark:text-gray-200">{item.weightKg.toFixed(2)} kg</span>
+      ),
+    },
+    {
+      key: 'dismantledBy',
+      header: 'Dismantled By',
+      dataType: 'text',
+      sortable: true,
+      accessor: (item) => item.dismantledBy,
+      render: (item) => (
+        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          {item.dismantledBy}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -107,69 +191,14 @@ export function InventoryControlView() {
         </div>
       </div>
 
-      {/* Master Inventory Table */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50/80 text-[11px] uppercase tracking-wider text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 font-bold">Component Name</th>
-                <th className="px-6 py-4 font-bold">Classification</th>
-                <th className="px-6 py-4 font-bold">Source Device</th>
-                <th className="px-6 py-4 font-bold">Quantity & Weight</th>
-                <th className="px-6 py-4 font-bold">Dismantled By</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60">
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-xs text-gray-400 italic">
-                    No inventory records match your filter criteria.
-                  </td>
-                </tr>
-              ) : (
-                items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-gray-900 dark:text-white">{item.componentName}</p>
-                      <span className="text-[11px] text-gray-400">Added: {item.dateAdded}</span>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <Badge
-                        variant="light"
-                        size="sm"
-                        color={
-                          item.category === 'Hazardous'
-                            ? 'error'
-                            : item.category === 'Reusable'
-                            ? 'info'
-                            : 'success'
-                        }
-                      >
-                        {item.category}
-                      </Badge>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{item.sourceDevice}</p>
-                    </td>
-
-                    <td className="px-6 py-4 font-mono text-xs">
-                      <span className="font-bold text-gray-900 dark:text-white">{item.quantity} pcs</span>
-                      <span className="text-gray-400 ml-1.5">({item.weightKg} kg/pc)</span>
-                    </td>
-
-                    <td className="px-6 py-4 text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {item.dismantledBy}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Master Inventory DataTable Layout */}
+      <DataTable
+        columns={columns}
+        data={items}
+        getRowId={(item) => item.id}
+        density="default"
+        emptyMessage="No inventory records match your filter criteria."
+      />
     </div>
   );
 }

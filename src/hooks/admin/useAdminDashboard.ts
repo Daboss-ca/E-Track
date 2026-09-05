@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import {  useMemo } from 'react';
 
 export interface AdminMetrics {
   totalEwasteVolume: string;
@@ -8,15 +8,27 @@ export interface AdminMetrics {
 }
 
 export function useAdminDashboard() {
-  // Mock data states para sa admin overview metrics
-  const [metrics] = useState<AdminMetrics>({
-    totalEwasteVolume: '1,420.50 kg',
-    activeDisposalRequests: 14,
-    systemStatus: 'Optimal (98.2%)',
-    completedDisposals: 86,
-  });
+  const rawCurrentWeight = 120.50;
+  const maxCapacity = 1800;
 
-  // Data mapping para sa Task Workflow Pipeline bar graph gamit ang ApexCharts categories
+  const metrics = useMemo<AdminMetrics>(() => {
+    const percentage = Math.round((rawCurrentWeight / maxCapacity) * 100);
+    let statusText = `Optimal (${100 - percentage}% Free)`;
+    
+    if (percentage >= 90) {
+      statusText = 'Critical (Storage Full)';
+    } else if (percentage >= 80) {
+      statusText = 'Warning (High Load)';
+    }
+
+    return {
+      totalEwasteVolume: `${rawCurrentWeight.toLocaleString()} kg`,
+      activeDisposalRequests: 14,
+      systemStatus: statusText,
+      completedDisposals: 86,
+    };
+  }, [rawCurrentWeight, maxCapacity]);
+
   const workflowData = useMemo(() => {
     return {
       categories: [
@@ -34,5 +46,7 @@ export function useAdminDashboard() {
   return {
     metrics,
     workflowData,
+    rawCurrentWeight,
+    maxCapacity,
   };
 }
