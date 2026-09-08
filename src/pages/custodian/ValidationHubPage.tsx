@@ -12,7 +12,6 @@ interface ValidationHubPageProps {
 }
 
 export const ValidationHubPage: React.FC<ValidationHubPageProps> = ({
-  currentNav: _currentNav,
   onNavigate
 }) => {
   const {
