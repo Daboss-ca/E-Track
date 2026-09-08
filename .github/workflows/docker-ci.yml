@@ -29,8 +29,8 @@ jobs:
           context: .
           push: true
           tags: |
-            chanoo12/e-track-frontend:latest
-            chanoo12/e-track-frontend:${{ github.sha }}
+            chanoo12/e-wastetrack:latest
+            chanoo12/e-wastetrack:${{ github.sha }}
           build-args: |
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
