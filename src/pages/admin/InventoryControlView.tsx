@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Search, Boxes, ShieldAlert, RefreshCw, Cpu, Layers } from 'lucide-react';
 import { useInventoryControl } from '../../hooks/admin/useInventoryControl';
 import Badge from '../../components/ui/Badge/badge';

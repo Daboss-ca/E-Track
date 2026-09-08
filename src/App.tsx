@@ -6,7 +6,7 @@ import { useAuth } from './hooks/useAuth';
 import AuthPage from './pages/AuthPage';
 import { supabase } from './lib/supabase';
 import AppLayout from './components/layouts/AppLayout';
-import { Grid, FileText, List, Truck, History, CheckCircle, Monitor } from 'lucide-react';
+import { Grid, FileText, List, Truck, History } from 'lucide-react';
 
 import SubmitRequestPage from './pages/faculty/SubmitRequestPage';
 import RequestLedgerPage from './pages/faculty/RequestLedgerPage';
@@ -14,10 +14,7 @@ import ActivePickupsPage from './pages/faculty/ActivePickupsPage';
 import DisposalHistoryPage from './pages/faculty/DisposalHistoryPage';
 import { UserDashboard } from './pages/faculty/UserDashboard';
 
-import ValidationHubPage from './pages/custodian/ValidationHubPage';
-import { ReturnSlipGenerator } from './pages/custodian/ReturnSlipGenerator';
-import InterOfficeMonitoringPage from './pages/custodian/InterOfficeMonitoringPage';
-
+import CustodianModule from './pages/custodian/CustodianModule';
 import SegregatorModule from './pages/segregator/SegregatorModule';
 import AdminModule from './pages/admin/AdminModule';
 
@@ -78,49 +75,8 @@ function FacultyLayout() {
   );
 }
 
-type CustodianAppView = 'validationHub' | 'return-slip' | 'inter-office-monitoring';
-
 function CustodianLayout() {
-  const [currentView, setCurrentView] = useState<CustodianAppView>(() => {
-    return (localStorage.getItem('custodian_current_view') as CustodianAppView) || 'inter-office-monitoring';
-  });
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleNavigate = (view: string) => {  
-    setCurrentView(view as CustodianAppView);
-    localStorage.setItem('custodian_current_view', view);
-  };
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'validationHub':
-        return <ValidationHubPage currentNav={currentView} onNavigate={handleNavigate} />;
-      case 'return-slip':
-        return <ReturnSlipGenerator currentNav={currentView} onNavigate={handleNavigate} />;
-      case 'inter-office-monitoring':
-        return <InterOfficeMonitoringPage currentNav={currentView} onNavigate={handleNavigate} />;
-      default:
-        return <ValidationHubPage currentNav={currentView} onNavigate={handleNavigate} />;
-    }
-  };
-
-  const custodianNavItems = [
-    { id: 'validationHub', name: 'Validation Hub', icon: <CheckCircle className="h-5 w-5" /> },
-    { id: 'return-slip', name: 'Return Slip', icon: <FileText className="h-5 w-5" /> },
-    { id: 'inter-office-monitoring', name: 'Inter-Office Monitoring', icon: <Monitor className="h-5 w-5" /> },
-  ];
-
-  return (
-    <AppLayout
-      activeId={currentView}
-      onNavigate={handleNavigate}
-      searchValue={searchQuery}
-      onSearchChange={setSearchQuery}
-      navItems={custodianNavItems}
-    >
-      {renderView()}
-    </AppLayout>
-  );
+  return <CustodianModule />;
 }
 
 function SegregatorLayout() {
@@ -181,7 +137,7 @@ export function AppContent() {
       return <CustodianLayout />;
     case 'segregator':
       return <SegregatorLayout />;
-    case 'admin': // <-- Idinagdag para i-render ang Admin module kapag ang role ay admin[cite: 12]
+    case 'admin':
       return <AdminLayout />;
     default:
       return <AuthPage />;
