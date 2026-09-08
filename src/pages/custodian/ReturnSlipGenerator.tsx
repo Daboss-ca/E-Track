@@ -1,8 +1,11 @@
 // src/pages/custodian/ReturnSlipGenerator.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Send, FileCheck, Tag, Hash, AlertCircle, Loader2 } from 'lucide-react';
 import Button from '../../components/ui/Button/button';
 import Badge from '../../components/ui/Badge/badge';
+import { Modal } from '../../components/ui/Modal/index';
+import { DataTable } from '../../components/ui/Table';
+import type { DataTableColumn } from '../../components/ui/Table';
 import { useReturnSlip } from '../../hooks/custodian/useReturnSlip';
 
 interface ReturnSlipGeneratorProps {
@@ -25,6 +28,87 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
     handleItemTagChange,
     sendToAdmin,
   } = useReturnSlip(requestId);
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  interface ReturnSlipItem {
+  id: string;
+  itemName: string;
+  category: string;
+  quantity: number;
+  propertyTag: string;
+  serialNumber: string;
+}
+
+
+  const columns: DataTableColumn<ReturnSlipItem>[] = [
+    {
+      key: 'itemDetails',
+      header: 'Item Details',
+      dataType: 'custom',
+      minWidth: '220px',
+      accessor: (item) => item.itemName,
+      render: (item) => (
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.itemName}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Category: {item.category}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'quantity',
+      header: 'Qty',
+      dataType: 'numeric',
+      minWidth: '80px',
+      accessor: (item) => item.quantity,
+      render: (item) => (
+        <span className="font-mono text-gray-800 dark:text-gray-200 font-medium">{item.quantity}</span>
+      ),
+    },
+    {
+      key: 'propertyTag',
+      header: 'Property Tag *',
+      dataType: 'custom',
+      minWidth: '240px',
+      accessor: (item) => item.propertyTag,
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <Tag className="h-4 w-4 text-emerald-600 shrink-0" />
+          <input
+            type="text"
+            placeholder="e.g., PROP-2026-001"
+            value={item.propertyTag}
+            onChange={(e) => handleItemTagChange(item.id, 'propertyTag', e.target.value)}
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-emerald-500 focus:outline-none transition-all"
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'serialNumber',
+      header: 'Serial Number (Optional)',
+      dataType: 'custom',
+      minWidth: '240px',
+      accessor: (item) => item.serialNumber,
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <Hash className="h-4 w-4 text-gray-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="e.g., SN-998123"
+            value={item.serialNumber}
+            onChange={(e) => handleItemTagChange(item.id, 'serialNumber', e.target.value)}
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-emerald-500 focus:outline-none transition-all"
+          />
+        </div>
+      ),
+    },
+  ];
+
+  const handleConfirmSubmit = () => {
+    setIsConfirmModalOpen(false);
+    sendToAdmin(onSuccess);
+  };
 
   return (
     <div className="space-y-6 font-sans antialiased">
@@ -98,7 +182,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
             </div>
           </div>
 
-          {/* Property Tagging Section */}
+          {/* Property Tagging Section using DataTable */}
           <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-xs">
             <div className="mb-4">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">Property Tagging &amp; Verification</h3>
@@ -114,51 +198,13 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
               </div>
             )}
 
-            <div className="space-y-3">
-              {requestData.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="sm:w-1/3">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.itemName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Category: {item.category} | Qty: {item.quantity}
-                    </p>
-                  </div>
-
-                  <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
-                    {/* Property Tag Field */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                        <Tag className="h-3.5 w-3.5 text-emerald-600" /> Property Tag <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., PROP-2026-001"
-                        value={item.propertyTag}
-                        onChange={(e) => handleItemTagChange(item.id, 'propertyTag', e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3.5 py-2 text-xs text-gray-800 dark:text-gray-200 focus:border-emerald-500 focus:outline-none transition-all"
-                      />
-                    </div>
-
-                    {/* Serial Number Field */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                        <Hash className="h-3.5 w-3.5 text-gray-400" /> Serial Number (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., SN-998123"
-                        value={item.serialNumber}
-                        onChange={(e) => handleItemTagChange(item.id, 'serialNumber', e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3.5 py-2 text-xs text-gray-800 dark:text-gray-200 focus:border-emerald-500 focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DataTable
+              columns={columns}
+              data={requestData.items}
+              getRowId={(item) => item.id}
+              density="comfortable"
+              emptyMessage="No items to tag."
+            />
           </div>
 
           {/* Action Footer: Send to Admin */}
@@ -170,7 +216,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
               variant="primary"
               size="md"
               disabled={!isFormValid || submitting}
-              onClick={() => sendToAdmin(onSuccess)}
+              onClick={() => setIsConfirmModalOpen(true)}
               startIcon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             >
               {submitting ? 'Transferring...' : 'Send to Admin (Supply Office)'}
@@ -178,6 +224,41 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        className="max-w-md p-6"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+              <FileCheck className="h-5 w-5" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Confirm Transfer
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Are you sure you want to generate the return slip for Control No. <strong>{requestData?.controlNumber}</strong> and transfer these tags to the Supply Office?
+          </p>
+          <div className="mt-4 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsConfirmModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmSubmit}
+            >
+              Confirm Transfer
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

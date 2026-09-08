@@ -1,4 +1,3 @@
-import React from 'react';
 import { Search, UserPlus, Shield, Mail, Building } from 'lucide-react';
 import { usePersonnelManagement, SystemUser } from '../../hooks/admin/usePersonnelManagement';
 import Badge from '../../components/ui/Badge/badge';

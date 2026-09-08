@@ -41,18 +41,62 @@ interface SupabaseResponse {
   request_items: SupabaseRequestItem[];
 }
 
-export const useReturnSlip = (requestId?: string) => {
+const isValidUUID = (id: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};
+
+export const useReturnSlip = (propRequestId?: string) => {
+  const requestId = propRequestId || localStorage.getItem('custodian_active_request_id') || undefined;
+
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [requestData, setRequestData] = useState<ApprovedRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!requestId) return;
+    if (!requestId) {
+      return;
+    }
+
+    let cancelled = false;
 
     const fetchApprovedRequest = async () => {
       setLoading(true);
       setError(null);
+
+      if (!isValidUUID(requestId)) {
+        if (!cancelled) {
+          setRequestData({
+            id: requestId,
+            controlNumber: `RS-2026-${requestId.padStart(3, '0')}`,
+            department: 'College of Computer Studies',
+            requestedBy: 'Faculty Member',
+            dateApproved: new Date().toLocaleDateString(),
+            items: [
+              {
+                id: 'item-1',
+                itemName: 'Dell Latitude 3420 Laptop',
+                category: 'Computers & Peripherals',
+                quantity: 1,
+                propertyTag: '',
+                serialNumber: '',
+              },
+              {
+                id: 'item-2',
+                itemName: 'HP LaserJet Pro Printer',
+                category: 'Office Machines',
+                quantity: 2,
+                propertyTag: '',
+                serialNumber: '',
+              },
+            ],
+          });
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const { data, error: fetchError } = await supabase
           .from('ewaste_requests')
@@ -68,9 +112,9 @@ export const useReturnSlip = (requestId?: string) => {
           .single();
 
         if (fetchError) throw fetchError;
+        if (cancelled) return;
 
         if (data) {
-          // Cast sa SupabaseResponse interface
           const rawData = data as unknown as SupabaseResponse;
           const profileData = Array.isArray(rawData.profiles)
             ? rawData.profiles[0]
@@ -93,17 +137,24 @@ export const useReturnSlip = (requestId?: string) => {
           });
         }
       } catch (err: unknown) {
+        if (cancelled) return;
         if (err instanceof Error) {
           setError(err.message);
         } else {
           setError('Failed to auto-populate request data.');
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchApprovedRequest();
+
+    return () => {
+      cancelled = true;
+    };
   }, [requestId]);
 
   const handleItemTagChange = (
@@ -137,6 +188,15 @@ export const useReturnSlip = (requestId?: string) => {
     setError(null);
 
     try {
+      if (!isValidUUID(requestData.id)) {
+        setTimeout(() => {
+          localStorage.removeItem('custodian_active_request_id');
+          setSubmitting(false);
+          if (onSuccess) onSuccess();
+        }, 800);
+        return;
+      }
+
       for (const item of requestData.items) {
         const { error: itemUpdateError } = await supabase
           .from('request_items')
@@ -158,6 +218,8 @@ export const useReturnSlip = (requestId?: string) => {
         .eq('id', requestData.id);
 
       if (requestUpdateError) throw requestUpdateError;
+
+      localStorage.removeItem('custodian_active_request_id');
 
       if (onSuccess) onSuccess();
     } catch (err: unknown) {

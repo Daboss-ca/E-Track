@@ -8,10 +8,12 @@ import { useValidationHub } from '../../hooks/custodian/useValidationHub';
 
 interface ValidationHubPageProps {
   currentNav?: string;
-  onNavigate: (view: string) => void;
+  onNavigate: (view: string, payload?: string) => void;
 }
 
-export const ValidationHubPage: React.FC<ValidationHubPageProps> = () => {
+export const ValidationHubPage: React.FC<ValidationHubPageProps> = ({
+  onNavigate
+}) => {
   const {
     requests,
     selectedRequest,
@@ -149,7 +151,7 @@ export const ValidationHubPage: React.FC<ValidationHubPageProps> = () => {
         <Modal
           isOpen={isModalOpen}
           onClose={handleCloseInspection}
-          showCloseButton={false} // Disabled built-in close button to keep our custom header design
+          showCloseButton={false} 
           className="max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl !rounded-2xl"
         >
           {/* Modal Header */}
@@ -237,9 +239,14 @@ export const ValidationHubPage: React.FC<ValidationHubPageProps> = () => {
               variant="primary"
               size="sm"
               startIcon={<CheckCircle2 className="h-4 w-4 text-white" />}
-              onClick={() => handleApprove(selectedRequest.id)}
+              onClick={() => {
+                handleApprove(selectedRequest.id);
+                handleCloseInspection();
+                // Itinugma sa 'return-slip' view key
+                onNavigate('return-slip', selectedRequest.id);
+              }}
             >
-              Approve Request
+              Approve & Generate Slip
             </Button>
           </div>
         </Modal>
