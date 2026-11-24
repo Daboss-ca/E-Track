@@ -11,6 +11,7 @@ import {
   Loader2,
   AlertCircle,
   Ban,
+  RotateCcw,
 } from 'lucide-react';
 import {
   useReturnSlip,
@@ -44,6 +45,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
     handleToggleItemReject,
     handleItemFeedbackChange,
     handleApproveAndForwardSlip,
+    handleRejectAndReturnToUser,
   } = useReturnSlip(requestId);
 
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'PRS' | 'RRSP'>('ALL');
@@ -56,10 +58,16 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
     }));
   };
 
+  const isSlipRejectedByCustodian = (status: string) =>
+    status.toLowerCase() === 'rejected by custodian';
+
   const isSlipForwardedToAdmin = (status: string) => {
     const normalized = status.toLowerCase();
     return normalized === 'pending admin approval' || normalized === 'approved';
   };
+
+  const isSlipLocked = (status: string) =>
+    isSlipForwardedToAdmin(status) || isSlipRejectedByCustodian(status);
 
   const prsSlips = slips.filter((s) => s.slipType === 'PRS');
   const rrspSlips = slips.filter((s) => s.slipType === 'RRSP');
@@ -78,7 +86,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
     dataType: 'text',
     sortable: false,
     accessor: (item) =>
-      item.isRejectedItem ? `Rejected: ${item.rejectionFeedback || 'Yes'}` : 'Included',
+      item.isRejectedItem ? `Rejected: ${item.rejectionFeedback || 'Yes'}` : 'Valid',
     render: (item) => {
       const rejected = Boolean(item.isRejectedItem);
 
@@ -107,7 +115,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
               }
             >
               {rejected && <Ban className="h-3.5 w-3.5 shrink-0" />}
-              {rejected ? 'Rejected (Excluded)' : 'Mark as Reject'}
+              {rejected ? 'Rejected' : 'Mark as Reject'}
             </span>
           </label>
 
@@ -290,16 +298,30 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
 
   const renderSlipCard = (slip: CustodianReturnSlip, variant: 'PRS' | 'RRSP') => {
     const isCollapsed = collapsedSlips[slip.trackingCode] ?? false;
-    const locked = isSlipForwardedToAdmin(slip.status);
+    const forwardedToAdmin = isSlipForwardedToAdmin(slip.status);
+    const returnedToUser = isSlipRejectedByCustodian(slip.status);
+    const locked = isSlipLocked(slip.status);
     const isSubmitting = submittingSlipId === slip.id;
     const rejectedCount = slip.items.filter((i) => i.isRejectedItem).length;
-    const includedCount = slip.items.length - rejectedCount;
+    const hasRejectedItems = rejectedCount > 0;
     const firstItemReason = slip.items[0]?.returnReason || 'Unserviceable';
 
     const codeBadgeClasses =
       variant === 'PRS'
         ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800'
         : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800';
+
+    const statusBadgeClasses = returnedToUser
+      ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
+      : forwardedToAdmin
+        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+        : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800';
+
+    const statusLabel = returnedToUser
+      ? 'Returned to Requestor'
+      : forwardedToAdmin
+        ? 'Forwarded to Admin'
+        : 'Pending Check';
 
     return (
       <div
@@ -324,25 +346,22 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
             )}
 
             <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
-              {slip.department} • {slip.items.length} {slip.items.length === 1 ? 'Item' : 'Items'}
+              {slip.department} • {slip.returnedBy} • {slip.items.length}{' '}
+              {slip.items.length === 1 ? 'Item' : 'Items'}
             </span>
 
             {rejectedCount > 0 && (
               <Badge variant="light" color="error" size="sm">
-                {rejectedCount} {rejectedCount === 1 ? 'Item' : 'Items'} Excluded
+                {rejectedCount} {rejectedCount === 1 ? 'Item' : 'Items'} Rejected
               </Badge>
             )}
           </div>
 
           <div className="flex items-center gap-2.5 justify-end">
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                locked
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
-                  : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
-              }`}
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusBadgeClasses}`}
             >
-              {locked ? 'Forwarded to Admin' : 'Pending Check'}
+              {statusLabel}
             </span>
 
             <button
@@ -379,38 +398,61 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {locked ? (
+                {returnedToUser ? (
+                  <span className="inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
+                    <RotateCcw className="h-4 w-4 shrink-0" />
+                    Rejected and sent back to {slip.returnedBy} with item feedback.
+                  </span>
+                ) : forwardedToAdmin ? (
                   <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
                     Approved and forwarded to Admin.
                   </span>
-                ) : rejectedCount > 0 ? (
-                  <span className="text-amber-700 dark:text-amber-400 font-medium">
-                    {includedCount} item(s) will be sent to Admin; {rejectedCount} rejected item(s) will be excluded.
+                ) : hasRejectedItems ? (
+                  <span className="text-rose-600 dark:text-rose-400 font-medium">
+                    {rejectedCount} rejected item(s) detected. Approval is disabled; use Reject to send back to {slip.returnedBy}.
                   </span>
                 ) : (
                   <span>
-                    All {includedCount} item(s) will be included when approved and sent to Admin.
+                    All items clear. Click Approve &amp; Send to Admin to forward this slip.
                   </span>
                 )}
               </div>
 
               {!locked && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={isSubmitting}
-                  onClick={() => void handleApproveAndForwardSlip(slip.id, onSuccess)}
-                  startIcon={
-                    isSubmitting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    )
-                  }
-                >
-                  {isSubmitting ? 'Approving...' : 'Approve & Send to Admin'}
-                </Button>
+                <div className="flex items-center gap-2.5 flex-wrap justify-end">
+                  {hasRejectedItems && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => void handleRejectAndReturnToUser(slip.id)}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 disabled:opacity-50 transition-colors cursor-pointer"
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      )}
+                      {isSubmitting ? 'Rejecting...' : 'Reject & Return to User'}
+                    </button>
+                  )}
+
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isSubmitting || hasRejectedItems}
+                    onClick={() => void handleApproveAndForwardSlip(slip.id, onSuccess)}
+                    startIcon={
+                      isSubmitting && !hasRejectedItems ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )
+                    }
+                  >
+                    {isSubmitting && !hasRejectedItems ? 'Approving...' : 'Approve & Send to Admin'}
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -425,7 +467,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Return Slips</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Review PRS and RRSP items, flag rejected items with feedback so they are excluded, and approve to send remaining items to Admin.
+            Verify PRS and RRSP items. Flagged rejected items disable approval and let you reject and return the slip to the requesting user.
           </p>
         </div>
       </div>
@@ -476,7 +518,7 @@ export const ReturnSlipGenerator: React.FC<ReturnSlipGeneratorProps> = ({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search code or department..."
+            placeholder="Search code, user, or department..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-200 dark:focus:bg-transparent"

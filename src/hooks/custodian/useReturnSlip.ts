@@ -240,17 +240,10 @@ export const useReturnSlip = (propRequestId?: string) => {
       const targetSlip = slips.find((s) => s.id === slipId);
       if (!targetSlip) return;
 
-      const rejectedItems = targetSlip.items.filter((item) => item.isRejectedItem);
-      const validItems = targetSlip.items.filter((item) => !item.isRejectedItem);
-
-      if (rejectedItems.some((item) => item.rejectionFeedback.trim() === '')) {
-        setError('Please enter feedback/reason for every rejected item before approving.');
-        return;
-      }
-
-      if (validItems.length === 0) {
+      const hasRejectedItems = targetSlip.items.some((item) => item.isRejectedItem);
+      if (hasRejectedItems) {
         setError(
-          'All items are marked as rejected. At least one non-rejected item is required to forward to Admin.'
+          'Cannot approve slip while rejected item(s) exist. Use Reject & Return to User instead.'
         );
         return;
       }
@@ -260,24 +253,23 @@ export const useReturnSlip = (propRequestId?: string) => {
       setSubmittingSlipId(slipId);
 
       try {
-        for (const rejectedItem of rejectedItems) {
-          const { error: deleteError } = await supabase
+        for (const item of targetSlip.items) {
+          const { error: itemError } = await supabase
             .from('return_slip_items')
-            .delete()
-            .eq('id', rejectedItem.id);
+            .update({
+              is_rejected_item: false,
+              rejection_feedback: null,
+            })
+            .eq('id', item.id);
 
-          if (deleteError) throw deleteError;
+          if (itemError) throw itemError;
         }
-
-        const rejectedNotes = rejectedItems
-          .map((item) => `${item.deviceName}: ${item.rejectionFeedback.trim()}`)
-          .join(' | ');
 
         const { error: slipError } = await supabase
           .from('return_slips')
           .update({
             status: 'Pending Admin Approval',
-            custodian_remarks: rejectedNotes || null,
+            custodian_remarks: null,
             custodian_validated_at: new Date().toISOString(),
           })
           .eq('id', targetSlip.id);
@@ -290,16 +282,13 @@ export const useReturnSlip = (propRequestId?: string) => {
               ? {
                   ...s,
                   status: 'Pending Admin Approval',
-                  items: validItems,
                 }
               : s
           )
         );
 
         setSuccessMessage(
-          rejectedItems.length > 0
-            ? `Slip ${targetSlip.trackingCode} forwarded to Admin excluding ${rejectedItems.length} rejected item(s).`
-            : `Slip ${targetSlip.trackingCode} approved and forwarded to Admin.`
+          `Return slip ${targetSlip.trackingCode} approved and forwarded to Admin.`
         );
 
         if (onSuccess) onSuccess();
@@ -316,6 +305,87 @@ export const useReturnSlip = (propRequestId?: string) => {
     [slips]
   );
 
+  const handleRejectAndReturnToUser = useCallback(
+    async (slipId: string) => {
+      const targetSlip = slips.find((s) => s.id === slipId);
+      if (!targetSlip) return;
+
+      const rejectedItems = targetSlip.items.filter((item) => item.isRejectedItem);
+      if (rejectedItems.length === 0) {
+        setError('Please mark at least one item as rejected before returning to the user.');
+        return;
+      }
+
+      const missingFeedback = rejectedItems.some(
+        (item) => item.rejectionFeedback.trim() === ''
+      );
+      if (missingFeedback) {
+        setError(
+          'Please provide rejection feedback for every rejected item before returning to the user.'
+        );
+        return;
+      }
+
+      setError(null);
+      setSuccessMessage(null);
+      setSubmittingSlipId(slipId);
+
+      try {
+        for (const item of targetSlip.items) {
+          const trimmedFeedback = item.rejectionFeedback.trim();
+          const { error: itemError } = await supabase
+            .from('return_slip_items')
+            .update({
+              is_rejected_item: item.isRejectedItem,
+              rejection_feedback: item.isRejectedItem ? trimmedFeedback : null,
+            })
+            .eq('id', item.id);
+
+          if (itemError) throw itemError;
+        }
+
+        const rejectedNotes = rejectedItems
+          .map((item) => `${item.deviceName}: ${item.rejectionFeedback.trim()}`)
+          .join(' | ');
+
+        const { error: slipError } = await supabase
+          .from('return_slips')
+          .update({
+            status: 'Rejected by Custodian',
+            custodian_remarks: rejectedNotes,
+            custodian_validated_at: new Date().toISOString(),
+          })
+          .eq('id', targetSlip.id);
+
+        if (slipError) throw slipError;
+
+        setSlips((prev) =>
+          prev.map((s) =>
+            s.id === targetSlip.id
+              ? {
+                  ...s,
+                  status: 'Rejected by Custodian',
+                }
+              : s
+          )
+        );
+
+        setSuccessMessage(
+          `Return slip ${targetSlip.trackingCode} rejected and sent back to ${targetSlip.returnedBy}.`
+        );
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Failed to reject and return slip to user.');
+        }
+      } finally {
+        setSubmittingSlipId(null);
+      }
+    },
+    [slips]
+  );
+
   const filteredSlips = slips.filter((s) => {
     const q = searchTerm.trim().toLowerCase();
     const matchesSearch =
@@ -323,6 +393,7 @@ export const useReturnSlip = (propRequestId?: string) => {
       s.trackingCode.toLowerCase().includes(q) ||
       s.department.toLowerCase().includes(q) ||
       s.custodianName.toLowerCase().includes(q) ||
+      s.returnedBy.toLowerCase().includes(q) ||
       s.items.some((item) => item.deviceName.toLowerCase().includes(q));
 
     if (!matchesSearch) return false;
@@ -343,6 +414,7 @@ export const useReturnSlip = (propRequestId?: string) => {
     handleToggleItemReject,
     handleItemFeedbackChange,
     handleApproveAndForwardSlip,
+    handleRejectAndReturnToUser,
     refreshSlips: loadSlips,
   };
 };
