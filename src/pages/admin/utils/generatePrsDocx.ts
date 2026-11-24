@@ -2,7 +2,25 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
 
-export async function generatePrsDocx(slip: any) {
+export interface PrsSlipItem {
+  dateAcquired?: string;
+  quantity?: number | string;
+  unit?: string;
+  propertyNo?: string;
+  icsNo?: string;
+  deviceName?: string;
+  description?: string;
+  acquisitionCost?: number | string;
+}
+
+export interface PrsSlipPayload {
+  trackingCode?: string;
+  department?: string;
+  custodianName?: string;
+  items?: PrsSlipItem[];
+}
+
+export async function generatePrsDocx(slip: PrsSlipPayload) {
   try {
     const response = await fetch('/templates/PROPERTY-RETURN-SLIP-PRS-unit-cost-50k-and-above.docx');
     if (!response.ok) {
@@ -17,7 +35,7 @@ export async function generatePrsDocx(slip: any) {
       linebreaks: true,
     });
 
-    const mappedItems = (slip.items || []).map((item: any) => ({
+    const mappedItems = (slip.items || []).map((item: PrsSlipItem) => ({
       dateAcquired: item.dateAcquired || '2023-05-12',
       quantity: item.quantity || 1,
       unit: item.unit || 'unit',

@@ -2,7 +2,26 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
 
-export async function generateRrspDocx(slip: any) {
+export interface RrspSlipItem {
+  deviceName?: string;
+  description?: string;
+  quantity?: number | string;
+  icsNo?: string;
+  propertyNo?: string;
+  endUser?: string;
+  location?: string;
+  remarks?: string;
+}
+
+export interface RrspSlipPayload {
+  trackingCode?: string;
+  date?: string;
+  department?: string;
+  custodianName?: string;
+  items?: RrspSlipItem[];
+}
+
+export async function generateRrspDocx(slip: RrspSlipPayload) {
   try {
     const response = await fetch('/templates/RECEIPT-OF-RETURNED-SEMI-EXPENDABLE-PROPERTY-RRSP-unit-cost-below-50k.docx');
     if (!response.ok) {
@@ -17,7 +36,7 @@ export async function generateRrspDocx(slip: any) {
       linebreaks: true,
     });
 
-    const mappedItems = (slip.items || []).map((item: any) => ({
+    const mappedItems = (slip.items || []).map((item: RrspSlipItem) => ({
       deviceName: item.deviceName || item.description || 'Semi-expendable Item',
       quantity: item.quantity || 1,
       icsNo: item.icsNo || item.propertyNo || 'ICS-2026-998',
