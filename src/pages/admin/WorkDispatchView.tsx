@@ -16,6 +16,8 @@ export function WorkDispatchView() {
     handleApproveSlip,
   } = useWorkDispatch();
 
+  type SlipItem = (typeof slips)[number]['items'][number];
+
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'PRS' | 'RRSP'>('ALL');
 
   const [collapsedSlips, setCollapsedSlips] = useState<Record<string, boolean>>({});
@@ -30,7 +32,7 @@ export function WorkDispatchView() {
   const prsSlips = slips.filter((s) => s.slipType === 'PRS');
   const rrspSlips = slips.filter((s) => s.slipType === 'RRSP');
 
-  const prsColumns: DataTableColumn<any>[] = [
+  const prsColumns: DataTableColumn<SlipItem>[] = [
     {
       key: 'deviceName',
       header: 'Item Description',
@@ -106,7 +108,7 @@ export function WorkDispatchView() {
     },
   ];
 
-  const rrspColumns: DataTableColumn<any>[] = [
+  const rrspColumns: DataTableColumn<SlipItem>[] = [
     {
       key: 'deviceName',
       header: 'Item Description',
@@ -384,7 +386,6 @@ export function WorkDispatchView() {
                       )}
 
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        {/* UPDATED: Tawag sa bagong RRSP Word template generator */}
                         <Button
                           variant="outline"
                           size="sm"
