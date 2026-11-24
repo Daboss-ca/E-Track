@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { mockReturnSlips, type ValidatedReturnSlip } from './useWorkDispatch';
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../../lib/supabase';
+import type { ValidatedReturnSlip } from './useWorkDispatch';
 
 export interface AdminMetrics {
   totalEwasteVolume: string;
@@ -8,9 +9,42 @@ export interface AdminMetrics {
   arClearedItems: number;
 }
 
-export function useAdminDashboard(slips: ValidatedReturnSlip[] = mockReturnSlips) {
-  const rawCurrentWeight = 120.50;
+interface EwasteWeightRow {
+  weight_kg: number | string | null;
+  quantity: number | null;
+}
+
+export function useAdminDashboard(slips: ValidatedReturnSlip[] = []) {
+  const [dbWeightKg, setDbWeightKg] = useState<number>(0);
   const maxCapacity = 1800;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadInventoryWeight() {
+      const { data, error } = await supabase
+        .from('ewaste_inventory')
+        .select('weight_kg, quantity');
+
+      if (!active || error || !data) return;
+
+      const total = (data as EwasteWeightRow[]).reduce((sum, row) => {
+        const w = Number(row.weight_kg) || 0;
+        const q = row.quantity || 1;
+        return sum + w * q;
+      }, 0);
+
+      setDbWeightKg(Number(total.toFixed(2)));
+    }
+
+    void loadInventoryWeight();
+
+    return () => {
+      active = false;
+    };
+  }, [slips]);
+
+  const rawCurrentWeight = dbWeightKg;
 
   const { pendingCount, approvedCount, clearedItemQty, prsCount, rrspCount } = useMemo(() => {
     let pending = 0;
@@ -41,7 +75,7 @@ export function useAdminDashboard(slips: ValidatedReturnSlip[] = mockReturnSlips
   }, [slips]);
 
   const metrics = useMemo<AdminMetrics>(() => {
-    const percentage = Math.round((rawCurrentWeight / maxCapacity) * 100);
+    const percentage = Math.min(100, Math.round((rawCurrentWeight / maxCapacity) * 100));
     let statusText = `Optimal (${100 - percentage}% Free)`;
 
     if (percentage >= 90) {

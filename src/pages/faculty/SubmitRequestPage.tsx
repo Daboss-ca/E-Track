@@ -6,7 +6,7 @@ import { useEWasteForm } from '../../hooks/faculty/useSubmitRequest';
 import { RequestFormCard } from '../../components/dashboard/RequestFormCard';
 import Button from '../../components/ui/Button/button';
 import Badge from '../../components/ui/Badge/badge';
-import { Modal } from '../../components/ui/Modal/index'; 
+import { Modal } from '../../components/ui/Modal/index';
 
 interface SubmitRequestPageProps {
   currentNav?: string;
@@ -25,16 +25,21 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
     await actions.submitRequest();
   };
 
+  const isPrs = formState.slipType === 'PRS';
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       {/* Page Header Action Row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90">
-            Submit E-Waste Request
+            Submit Return Slip Request
           </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Complete return slip details are recorded; qualifying E-Devices are routed to inventory upon approval.
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
@@ -59,7 +64,7 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
             onClick={handleFinalSubmit}
             disabled={formState.loading}
           >
-            {formState.loading ? 'Submitting to Cloud...' : 'Submit Request'}
+            {formState.loading ? 'Submitting Slip...' : 'Submit Return Slip'}
           </Button>
         </div>
       </div>
@@ -77,7 +82,7 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-500 shrink-0" />
             <span>{formState.successMessage}</span>
           </div>
-          <button 
+          <button
             type="button"
             onClick={actions.clearSuccessMessage}
             className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 font-semibold"
@@ -87,62 +92,159 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
         </div>
       )}
 
-      {/* Request Form Card */}
+      {/* Return Slip Header Card */}
       <RequestFormCard
-        itemName={formState.itemName}
-        category={formState.category}
-        departmentCode={formState.departmentCode}
+        slipType={formState.slipType}
+        returnReason={formState.returnReason}
+        department={formState.department}
+        custodianName={formState.custodianName}
         date={formState.date}
         trackingCodePreview={formState.trackingCodePreview}
-        onItemNameChange={setters.setItemName}
-        onCategoryChange={setters.setCategory}
+        onSlipTypeChange={setters.setSlipType}
+        onReturnReasonChange={setters.setReturnReason}
+        onDepartmentChange={setters.setDepartment}
+        onCustodianNameChange={setters.setCustodianName}
         onDateChange={setters.setDate}
       />
 
-      {/* Equipment Details Table */}
+      {/* Dynamic Equipment / Return Items Table */}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-white/90">Equipment Details</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-white/90">
+            {isPrs ? 'PRS Item Details (Individual Property)' : 'RRSP Item Details (Semi-Expendable)'}
+          </h2>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {isPrs
+              ? 'PRS items are recorded 1 unit per entry with Property No. and Cost.'
+              : 'RRSP items support multiple quantities with ICS No., End-User / Location & Cost.'}
+          </span>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-theme-sm">
+          <table className="w-full border-separate border-spacing-x-3 border-spacing-y-2 text-left text-theme-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                <th className="w-10 pb-3 font-semibold">No.</th>
-                <th className="pb-3 font-semibold">Description</th>
-                <th className="w-24 pb-3 font-semibold">Qty</th>
-                <th className="w-48 pb-3 font-semibold">Category (Synced)</th>
-                <th className="w-16 pb-3 font-semibold">Actions</th>
+              <tr className="text-theme-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <th className="w-10 pb-2 font-semibold">No.</th>
+                <th className="min-w-[230px] pb-2 font-semibold">Item / Device Description</th>
+                <th className="w-24 pb-2 font-semibold">Qty</th>
+                <th className="w-36 pb-2 font-semibold">Cost (₱)</th>
+                {isPrs ? (
+                  <>
+                    <th className="w-44 pb-2 font-semibold">Property No.</th>
+                    <th className="w-40 pb-2 font-semibold">Date Acquired</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="w-40 pb-2 font-semibold">ICS No.</th>
+                    <th className="w-48 pb-2 font-semibold">End-User / Location</th>
+                  </>
+                )}
+                <th className="w-16 pb-2 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60">
+            <tbody>
               {formState.equipmentItems.map((row, idx) => (
                 <tr key={row.id} className="transition-colors hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
-                  <td className="py-3 text-gray-400 dark:text-gray-500 font-medium">{idx + 1}</td>
-                  <td className="py-3 pr-3">
+                  <td className="py-2 text-gray-400 dark:text-gray-500 font-medium">{idx + 1}</td>
+
+                  <td className="py-2">
                     <input
                       type="text"
                       value={row.description}
-                      onChange={(e) => actions.updateEquipmentRow(row.id, { description: e.target.value })}
-                      placeholder="Describe the item specs"
-                      className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
-                  </td>
-                  <td className="py-3 pr-3">
-                    <input
-                      type="number"
-                      min={1}
-                      value={row.quantity}
                       onChange={(e) =>
-                        actions.updateEquipmentRow(row.id, { quantity: Math.max(1, Number(e.target.value)) })
+                        actions.updateEquipmentRow(row.id, { description: e.target.value })
+                      }
+                      placeholder={
+                        isPrs
+                          ? 'e.g. Dell PowerEdge Server or Office Table'
+                          : 'e.g. Epson L3210 Printer or Keyboard Set'
                       }
                       className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     />
                   </td>
-                  <td className="py-3 pr-3">
-                    <Badge color="light" variant="light" size="sm">
-                      {formState.category}
-                    </Badge>
+
+                  <td className="py-2">
+                    <input
+                      type="number"
+                      min={1}
+                      disabled={isPrs}
+                      value={isPrs ? 1 : row.quantity}
+                      onChange={(e) =>
+                        actions.updateEquipmentRow(row.id, {
+                          quantity: Math.max(1, Number(e.target.value)),
+                        })
+                      }
+                      className="w-full rounded-xl border border-gray-200 bg-transparent disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-800 dark:disabled:bg-white/[0.02] dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
                   </td>
-                  <td className="py-3">
+
+                  <td className="py-2">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={row.acquisitionCost}
+                      onChange={(e) =>
+                        actions.updateEquipmentRow(row.id, {
+                          acquisitionCost: Math.max(0, Number(e.target.value)),
+                        })
+                      }
+                      className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </td>
+
+                  {isPrs ? (
+                    <>
+                      <td className="py-2">
+                        <input
+                          type="text"
+                          value={row.propertyNo}
+                          onChange={(e) =>
+                            actions.updateEquipmentRow(row.id, { propertyNo: e.target.value })
+                          }
+                          placeholder="e.g. PRS-2026-001"
+                          className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </td>
+                      <td className="py-2">
+                        <input
+                          type="date"
+                          value={row.dateAcquired}
+                          onChange={(e) =>
+                            actions.updateEquipmentRow(row.id, { dateAcquired: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white [color-scheme:light] dark:[color-scheme:dark] px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="py-2">
+                        <input
+                          type="text"
+                          value={row.icsNo}
+                          onChange={(e) =>
+                            actions.updateEquipmentRow(row.id, { icsNo: e.target.value })
+                          }
+                          placeholder="e.g. ICS-2026-998"
+                          className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </td>
+                      <td className="py-2">
+                        <input
+                          type="text"
+                          value={row.location}
+                          onChange={(e) =>
+                            actions.updateEquipmentRow(row.id, { location: e.target.value })
+                          }
+                          placeholder="e.g. Room 204 / End-User"
+                          className="w-full rounded-xl border border-gray-200 bg-transparent dark:border-gray-800 dark:text-white px-3 py-2 text-theme-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </td>
+                    </>
+                  )}
+
+                  <td className="py-2">
                     <button
                       type="button"
                       onClick={() => actions.removeEquipmentRow(row.id)}
@@ -165,7 +267,7 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
             startIcon={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
             onClick={actions.addEquipmentRow}
           >
-            Add Equipment Item
+            Add Item Row
           </Button>
         </div>
       </section>
@@ -176,7 +278,7 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
         <FileDropzone files={formState.photos} onFilesChange={setters.setPhotos} />
       </section>
 
-      {/* Preview Request Modal (Refactored to use generic Modal) */}
+      {/* Preview Request Modal */}
       <Modal
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
@@ -184,7 +286,7 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
         className="max-w-lg p-6 border border-gray-200 dark:border-gray-800 shadow-2xl !rounded-2xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">Preview Request Summary</h3>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">Preview Return Slip</h3>
           <button
             type="button"
             onClick={() => setShowPreview(false)}
@@ -194,23 +296,35 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
           </button>
         </div>
         <dl className="space-y-3 text-theme-sm divide-y divide-gray-100 dark:divide-gray-800/60">
-          <div className="flex justify-between pt-2">
-            <dt className="text-gray-500 dark:text-gray-400">Item Name</dt>
-            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.itemName || '—'}</dd>
-          </div>
           <div className="flex justify-between pt-2 items-center">
-            <dt className="text-gray-500 dark:text-gray-400">Category</dt>
+            <dt className="text-gray-500 dark:text-gray-400">Slip Type</dt>
             <dd>
-              <Badge color="info" variant="light" size="sm">{formState.category}</Badge>
+              <Badge color="info" variant="light" size="sm">{formState.slipType}</Badge>
             </dd>
           </div>
+          {isPrs && (
+            <div className="flex justify-between pt-2">
+              <dt className="text-gray-500 dark:text-gray-400">Return Reason</dt>
+              <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.returnReason}</dd>
+            </div>
+          )}
           <div className="flex justify-between pt-2">
             <dt className="text-gray-500 dark:text-gray-400">Department</dt>
-            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.departmentCode}</dd>
+            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.department || '—'}</dd>
+          </div>
+          <div className="flex justify-between pt-2">
+            <dt className="text-gray-500 dark:text-gray-400">Custodian</dt>
+            <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.custodianName || '—'}</dd>
           </div>
           <div className="flex justify-between pt-2">
             <dt className="text-gray-500 dark:text-gray-400">Date</dt>
             <dd className="font-medium text-gray-800 dark:text-gray-200">{formState.date || '—'}</dd>
+          </div>
+          <div className="flex justify-between pt-2">
+            <dt className="text-gray-500 dark:text-gray-400">Total Line Items</dt>
+            <dd className="font-medium text-gray-800 dark:text-gray-200">
+              {formState.equipmentItems.filter((i) => i.description.trim()).length}
+            </dd>
           </div>
           <div className="flex justify-between pt-2 items-center">
             <dt className="text-gray-500 dark:text-gray-400">Tracking Code</dt>
@@ -237,7 +351,7 @@ const SubmitRequestPage: React.FC<SubmitRequestPageProps> = () => {
         </div>
       </Modal>
 
-      {/* Settings Modal (Refactored to use generic Modal) */}
+      {/* Settings Modal */}
       <Modal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}

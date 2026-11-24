@@ -12,10 +12,8 @@ export function InventoryControlView() {
     setSearchTerm,
   } = useInventoryControl();
 
-  // Salain lamang ang mga hazardous items para sa E-Waste Inventory Control
   const hazardousItems = items.filter((item) => item.category === 'Hazardous');
 
-  // Pag-compute ng mga KPI metrics mula sa items
   const totalReturnItems = items.reduce((acc, item) => acc + (item.quantity || 1), 0);
   const hazardousItemCount = hazardousItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
   const totalHazardousWeight = hazardousItems.reduce(
@@ -23,7 +21,6 @@ export function InventoryControlView() {
     0
   );
 
-  // Depinisyon ng Columns para sa DataTable
   const columns: DataTableColumn<typeof items[number]>[] = [
     {
       key: 'componentName',
@@ -35,7 +32,10 @@ export function InventoryControlView() {
       render: (item) => (
         <div>
           <p className="font-bold text-gray-900 dark:text-white">{item.componentName}</p>
-          <span className="text-[11px] text-gray-400">Added: {item.dateAdded}</span>
+          <span className="text-[11px] text-gray-400">
+            Added: {item.dateAdded}
+            {item.trackingCode ? ` • ${item.trackingCode}` : ''}
+          </span>
         </div>
       ),
     },
@@ -58,7 +58,14 @@ export function InventoryControlView() {
       sortable: true,
       accessor: (item) => item.sourceDevice,
       render: (item) => (
-        <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{item.sourceDevice}</p>
+        <div>
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{item.sourceDevice}</p>
+          {item.ictCategory && (
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              {item.ictCategory}
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -97,7 +104,7 @@ export function InventoryControlView() {
 
   return (
     <div className="space-y-6">
-      {/* Header Title & Plain Search Bar sa Kanang Taas */}
+      {/* Header Title & Plain Search Bar*/}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">E-Waste Inventory Control</h1>
@@ -117,7 +124,7 @@ export function InventoryControlView() {
         </div>
       </div>
 
-      {/* KPI Summary Cards gamit ang Card component */}
+      {/* KPI Summary Cards*/}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <div className="w-full flex items-center justify-between">

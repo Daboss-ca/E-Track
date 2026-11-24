@@ -1,245 +1,317 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 
-export interface RequestedItem {
+export interface CustodianReturnSlipItem {
   id: string;
-  itemName: string;
-  category: string;
+  slipId: string;
+  deviceName: string;
   quantity: number;
+  unit: string;
+  acquisitionCost: number;
+  propertyNo: string;
+  icsNo: string;
   propertyTag: string;
   serialNumber: string;
+  returnReason: 'Unserviceable' | 'No longer needed' | 'Reassignment' | 'Other';
+  dateAcquired: string;
+  endUser: string;
+  location: string;
+  isRejectedItem: boolean;
+  rejectionFeedback: string;
 }
 
-export interface ApprovedRequest {
+export interface CustodianReturnSlip {
   id: string;
-  controlNumber: string;
+  trackingCode: string;
+  slipType: 'PRS' | 'RRSP';
   department: string;
-  requestedBy: string;
-  dateApproved: string;
-  items: RequestedItem[];
+  custodianName: string;
+  returnedBy: string;
+  validatedDate: string;
+  status: string;
+  items: CustodianReturnSlipItem[];
 }
 
-interface SupabaseProfile {
-  full_name: string | null;
-}
-
-interface SupabaseRequestItem {
+interface SlipItemRecord {
   id: string;
-  item_name: string;
-  category: string;
-  quantity: number;
+  slip_id: string;
+  device_name: string;
+  quantity: number | null;
+  unit: string | null;
+  acquisition_cost: number | string | null;
+  property_no: string | null;
+  ics_no: string | null;
   property_tag: string | null;
   serial_number: string | null;
+  return_reason: CustodianReturnSlipItem['returnReason'] | null;
+  date_acquired: string | null;
+  end_user: string | null;
+  location: string | null;
+  is_rejected_item?: boolean | null;
+  rejection_feedback?: string | null;
 }
 
-interface SupabaseResponse {
+interface ReturnSlipRecord {
   id: string;
-  control_number: string | null;
-  department: string | null;
-  updated_at: string;
-  profiles: SupabaseProfile | SupabaseProfile[] | null;
-  request_items: SupabaseRequestItem[];
+  tracking_code: string;
+  slip_type: 'PRS' | 'RRSP';
+  department: string;
+  custodian_name: string;
+  returned_by?: string | null;
+  validated_date: string;
+  created_at?: string;
+  status: string;
+  return_slip_items?: SlipItemRecord[];
 }
-
-const isValidUUID = (id: string) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
-};
 
 export const useReturnSlip = (propRequestId?: string) => {
-  const requestId = propRequestId || localStorage.getItem('custodian_active_request_id') || undefined;
+  const activeSlipId =
+    propRequestId || localStorage.getItem('custodian_active_request_id') || null;
 
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [requestData, setRequestData] = useState<ApprovedRequest | null>(null);
+  const [slips, setSlips] = useState<CustodianReturnSlip[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [submittingSlipId, setSubmittingSlipId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!requestId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchApprovedRequest = async () => {
-      setLoading(true);
-      setError(null);
-
-      if (!isValidUUID(requestId)) {
-        if (!cancelled) {
-          setRequestData({
-            id: requestId,
-            controlNumber: `RS-2026-${requestId.padStart(3, '0')}`,
-            department: 'College of Computer Studies',
-            requestedBy: 'Faculty Member',
-            dateApproved: new Date().toLocaleDateString(),
-            items: [
-              {
-                id: 'item-1',
-                itemName: 'Dell Latitude 3420 Laptop',
-                category: 'Computers & Peripherals',
-                quantity: 1,
-                propertyTag: '',
-                serialNumber: '',
-              },
-              {
-                id: 'item-2',
-                itemName: 'HP LaserJet Pro Printer',
-                category: 'Office Machines',
-                quantity: 2,
-                propertyTag: '',
-                serialNumber: '',
-              },
-            ],
-          });
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('ewaste_requests')
-          .select(`
-            id,
-            control_number,
-            department,
-            profiles:user_id (full_name),
-            updated_at,
-            request_items (id, item_name, category, quantity, property_tag, serial_number)
-          `)
-          .eq('id', requestId)
-          .single();
-
-        if (fetchError) throw fetchError;
-        if (cancelled) return;
-
-        if (data) {
-          const rawData = data as unknown as SupabaseResponse;
-          const profileData = Array.isArray(rawData.profiles)
-            ? rawData.profiles[0]
-            : rawData.profiles;
-
-          setRequestData({
-            id: rawData.id,
-            controlNumber: rawData.control_number || `RS-${Date.now().toString().slice(-6)}`,
-            department: rawData.department || 'N/A',
-            requestedBy: profileData?.full_name || 'Faculty Member',
-            dateApproved: new Date(rawData.updated_at).toLocaleDateString(),
-            items: (rawData.request_items || []).map((item) => ({
-              id: item.id,
-              itemName: item.item_name,
-              category: item.category,
-              quantity: item.quantity,
-              propertyTag: item.property_tag || '',
-              serialNumber: item.serial_number || '',
-            })),
-          });
-        }
-      } catch (err: unknown) {
-        if (cancelled) return;
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('Failed to auto-populate request data.');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchApprovedRequest();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [requestId]);
-
-  const handleItemTagChange = (
-    itemId: string,
-    field: 'propertyTag' | 'serialNumber',
-    value: string
-  ) => {
-    if (!requestData) return;
-
-    setRequestData({
-      ...requestData,
-      items: requestData.items.map((item) =>
-        item.id === itemId ? { ...item, [field]: value } : item
-      ),
-    });
-  };
-
-  const isFormValid = Boolean(
-    requestData &&
-      requestData.items.length > 0 &&
-      requestData.items.every((item) => item.propertyTag.trim() !== '')
-  );
-
-  const sendToAdmin = async (onSuccess?: () => void) => {
-    if (!isFormValid || !requestData) {
-      setError('Please fill in all required Property Tags before submitting.');
-      return;
-    }
-
-    setSubmitting(true);
+  const loadSlips = useCallback(async () => {
+    setLoading(true);
     setError(null);
 
     try {
-      if (!isValidUUID(requestData.id)) {
-        setTimeout(() => {
-          localStorage.removeItem('custodian_active_request_id');
-          setSubmitting(false);
-          if (onSuccess) onSuccess();
-        }, 800);
-        return;
-      }
+      const { data, error: fetchError } = await supabase
+        .from('return_slips')
+        .select('*, return_slip_items(*)')
+        .order('created_at', { ascending: false });
 
-      for (const item of requestData.items) {
-        const { error: itemUpdateError } = await supabase
-          .from('request_items')
-          .update({
-            property_tag: item.propertyTag,
-            serial_number: item.serialNumber,
-          })
-          .eq('id', item.id);
+      if (fetchError) throw fetchError;
 
-        if (itemUpdateError) throw itemUpdateError;
-      }
+      const mapped: CustodianReturnSlip[] = ((data as ReturnSlipRecord[]) || []).map((row) => {
+        const items = (row.return_slip_items || []).map((item) => {
+          const existingTag =
+            row.slip_type === 'PRS'
+              ? item.property_tag || item.property_no || ''
+              : item.property_tag || item.ics_no || '';
 
-      const { error: requestUpdateError } = await supabase
-        .from('ewaste_requests')
-        .update({
-          status: 'transferred_to_admin',
-          return_slip_generated_at: new Date().toISOString(),
-        })
-        .eq('id', requestData.id);
+          return {
+            id: item.id,
+            slipId: row.id,
+            deviceName: item.device_name,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'unit',
+            acquisitionCost: Number(item.acquisition_cost) || 0,
+            propertyNo: item.property_no || '',
+            icsNo: item.ics_no || '',
+            propertyTag: existingTag,
+            serialNumber: item.serial_number || '',
+            returnReason: item.return_reason || 'Unserviceable',
+            dateAcquired: item.date_acquired || '',
+            endUser: item.end_user || row.returned_by || '',
+            location: item.location || row.department,
+            isRejectedItem: Boolean(item.is_rejected_item),
+            rejectionFeedback: item.rejection_feedback || '',
+          };
+        });
 
-      if (requestUpdateError) throw requestUpdateError;
+        const firstEndUser = items.find((i) => i.endUser)?.endUser;
 
-      localStorage.removeItem('custodian_active_request_id');
+        return {
+          id: row.id,
+          trackingCode: row.tracking_code,
+          slipType: row.slip_type,
+          department: row.department || 'N/A',
+          custodianName: row.custodian_name || 'Property Custodian',
+          returnedBy: firstEndUser || row.returned_by || 'End-User',
+          validatedDate: row.validated_date || (row.created_at ? row.created_at.slice(0, 10) : ''),
+          status: row.status,
+          items,
+        };
+      });
 
-      if (onSuccess) onSuccess();
+      setSlips(mapped);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Failed to transfer Return Slip to Admin.');
+        setError('Failed to load return slips from database.');
       }
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadSlips();
+
+    const channel = supabase
+      .channel('custodian-return-slips-checker-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'return_slips' },
+        () => {
+          void loadSlips();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadSlips]);
+
+  const handleToggleItemReject = useCallback((slipId: string, itemId: string, rejected: boolean) => {
+    setError(null);
+    setSuccessMessage(null);
+
+    setSlips((prev) =>
+      prev.map((slip) =>
+        slip.id === slipId
+          ? {
+              ...slip,
+              items: slip.items.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      isRejectedItem: rejected,
+                      rejectionFeedback: rejected ? item.rejectionFeedback : '',
+                    }
+                  : item
+              ),
+            }
+          : slip
+      )
+    );
+  }, []);
+
+  const handleItemFeedbackChange = useCallback(
+    (slipId: string, itemId: string, feedback: string) => {
+      setError(null);
+      setSlips((prev) =>
+        prev.map((slip) =>
+          slip.id === slipId
+            ? {
+                ...slip,
+                items: slip.items.map((item) =>
+                  item.id === itemId ? { ...item, rejectionFeedback: feedback } : item
+                ),
+              }
+            : slip
+        )
+      );
+    },
+    []
+  );
+
+  const handleApproveAndForwardSlip = useCallback(
+    async (slipId: string, onSuccess?: () => void) => {
+      const targetSlip = slips.find((s) => s.id === slipId);
+      if (!targetSlip) return;
+
+      const rejectedItems = targetSlip.items.filter((item) => item.isRejectedItem);
+      const validItems = targetSlip.items.filter((item) => !item.isRejectedItem);
+
+      if (rejectedItems.some((item) => item.rejectionFeedback.trim() === '')) {
+        setError('Please enter feedback/reason for every rejected item before approving.');
+        return;
+      }
+
+      if (validItems.length === 0) {
+        setError(
+          'All items are marked as rejected. At least one non-rejected item is required to forward to Admin.'
+        );
+        return;
+      }
+
+      setError(null);
+      setSuccessMessage(null);
+      setSubmittingSlipId(slipId);
+
+      try {
+        // Exclude rejected items by removing them from return_slip_items so only valid items go to Admin
+        for (const rejectedItem of rejectedItems) {
+          const { error: deleteError } = await supabase
+            .from('return_slip_items')
+            .delete()
+            .eq('id', rejectedItem.id);
+
+          if (deleteError) throw deleteError;
+        }
+
+        const rejectedNotes = rejectedItems
+          .map((item) => `${item.deviceName}: ${item.rejectionFeedback.trim()}`)
+          .join(' | ');
+
+        const { error: slipError } = await supabase
+          .from('return_slips')
+          .update({
+            status: 'Pending Admin Approval',
+            custodian_remarks: rejectedNotes || null,
+            custodian_validated_at: new Date().toISOString(),
+          })
+          .eq('id', targetSlip.id);
+
+        if (slipError) throw slipError;
+
+        setSlips((prev) =>
+          prev.map((s) =>
+            s.id === targetSlip.id
+              ? {
+                  ...s,
+                  status: 'Pending Admin Approval',
+                  items: validItems,
+                }
+              : s
+          )
+        );
+
+        setSuccessMessage(
+          rejectedItems.length > 0
+            ? `Slip ${targetSlip.trackingCode} forwarded to Admin excluding ${rejectedItems.length} rejected item(s).`
+            : `Slip ${targetSlip.trackingCode} approved and forwarded to Admin.`
+        );
+
+        if (onSuccess) onSuccess();
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Failed to approve and forward return slip to Admin.');
+        }
+      } finally {
+        setSubmittingSlipId(null);
+      }
+    },
+    [slips]
+  );
+
+  const filteredSlips = slips.filter((s) => {
+    const q = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      s.trackingCode.toLowerCase().includes(q) ||
+      s.department.toLowerCase().includes(q) ||
+      s.custodianName.toLowerCase().includes(q) ||
+      s.items.some((item) => item.deviceName.toLowerCase().includes(q));
+
+    if (!matchesSearch) return false;
+    if (activeSlipId && propRequestId) {
+      return s.id === activeSlipId;
+    }
+    return true;
+  });
 
   return {
+    slips: filteredSlips,
     loading,
-    submitting,
-    requestData,
+    submittingSlipId,
+    searchTerm,
+    setSearchTerm,
     error,
-    isFormValid,
-    handleItemTagChange,
-    sendToAdmin,
+    successMessage,
+    handleToggleItemReject,
+    handleItemFeedbackChange,
+    handleApproveAndForwardSlip,
+    refreshSlips: loadSlips,
   };
 };

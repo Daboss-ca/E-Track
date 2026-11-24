@@ -1,103 +1,164 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '../../lib/supabase';
+import { classifyDeviceItem, type CvsuIctCategory } from '../../utils/admin/deviceCatalog';
 
 export interface InventoryItem {
   id: string;
   componentName: string;
   category: 'Hazardous' | 'Reusable' | 'Recyclable';
   sourceDevice: string;
+  ictCategory?: CvsuIctCategory | string;
+  trackingCode?: string;
   weightKg: number;
   quantity: number;
   dismantledBy: string;
   dateAdded: string;
 }
 
-const mockInventoryItems: InventoryItem[] = [
-  {
-    id: 'inv-1',
-    componentName: 'Lithium-ion Laptop Battery Pack',
-    category: 'Hazardous',
-    sourceDevice: 'Dell Latitude 5490',
-    weightKg: 0.45,
-    quantity: 4,
-    dismantledBy: 'Christian Arnuco',
-    dateAdded: '2026-09-02',
-  },
-  {
-    id: 'inv-2',
-    componentName: 'Lead-Acid UPS Battery',
-    category: 'Hazardous',
-    sourceDevice: 'APC Smart-UPS 3000VA',
-    weightKg: 11.50,
-    quantity: 2,
-    dismantledBy: 'Alex Mercado',
-    dateAdded: '2026-09-04',
-  },
-  {
-    id: 'inv-3',
-    componentName: 'Mercury-Containing CCFL Backlight Tube',
-    category: 'Hazardous',
-    sourceDevice: 'ViewSonic 24-inch LCD Monitor',
-    weightKg: 0.15,
-    quantity: 6,
-    dismantledBy: 'Jayson Ramos',
-    dateAdded: '2026-09-05',
-  },
-  {
-    id: 'inv-4',
-    componentName: 'CRT Glass Panel (Lead-laced)',
-    category: 'Hazardous',
-    sourceDevice: 'HP Vintage Desktop Monitor',
-    weightKg: 8.20,
-    quantity: 3,
-    dismantledBy: 'Christian Arnuco',
-    dateAdded: '2026-09-08',
-  },
-  {
-    id: 'inv-5',
-    componentName: 'Motherboard Soldered Circuit Board',
-    category: 'Hazardous',
-    sourceDevice: 'Dell PowerEdge R740 Server',
-    weightKg: 1.20,
-    quantity: 5,
-    dismantledBy: 'Alex Mercado',
-    dateAdded: '2026-09-10',
-  },
-  {
-    id: 'inv-6',
-    componentName: 'Laser Printer Toner Cartridge Residue',
-    category: 'Hazardous',
-    sourceDevice: 'Epson L3210 / HP LaserJet Pro',
-    weightKg: 0.85,
-    quantity: 8,
-    dismantledBy: 'Jayson Ramos',
-    dateAdded: '2026-09-12',
-  },
-  {
-    id: 'inv-7',
-    componentName: 'Nickel-Cadmium (NiCd) Server Battery',
-    category: 'Hazardous',
-    sourceDevice: 'Cisco Catalyst 3850 Switch',
-    weightKg: 0.30,
-    quantity: 4,
-    dismantledBy: 'Christian Arnuco',
-    dateAdded: '2026-09-15',
-  },
-  {
-    id: 'inv-8',
-    componentName: 'Fluorescent Scanner Lamp Module',
-    category: 'Hazardous',
-    sourceDevice: 'HP ScanJet Enterprise',
-    weightKg: 0.25,
-    quantity: 2,
-    dismantledBy: 'Alex Mercado',
-    dateAdded: '2026-09-18',
-  },
-];
+export interface ApprovableSlipItemInput {
+  id: string;
+  deviceName: string;
+  quantity: number;
+  isEDevice?: boolean;
+  ictCategory?: CvsuIctCategory | null;
+}
+
+export interface ApprovableSlipInput {
+  id: string;
+  trackingCode: string;
+  custodianName: string;
+  items: ApprovableSlipItemInput[];
+}
+
+interface EwasteInventoryRow {
+  id: string;
+  slip_item_id: string | null;
+  tracking_code: string;
+  source_device: string;
+  ict_category: string;
+  component_name: string;
+  classification: 'Hazardous' | 'Non-Hazardous';
+  quantity: number;
+  weight_kg: number | string;
+  dismantled_by: string | null;
+  created_at: string;
+}
+
+function mapRowToInventoryItem(row: EwasteInventoryRow): InventoryItem {
+  return {
+    id: row.id,
+    componentName: row.component_name,
+    category: row.classification === 'Hazardous' ? 'Hazardous' : 'Reusable',
+    sourceDevice: row.source_device,
+    ictCategory: row.ict_category,
+    trackingCode: row.tracking_code,
+    weightKg: Number(row.weight_kg) || 0,
+    quantity: row.quantity || 1,
+    dismantledBy: row.dismantled_by || 'Pending Assignment',
+    dateAdded: row.created_at ? row.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+  };
+}
 
 export function useInventoryControl() {
-  const [items] = useState<InventoryItem[]>(mockInventoryItems);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const refreshInventory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('ewaste_inventory')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to fetch ewaste_inventory:', error.message);
+        setItems([]);
+        return;
+      }
+
+      setItems(((data as EwasteInventoryRow[]) || []).map(mapRowToInventoryItem));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadInitialInventory() {
+      const { data, error } = await supabase
+        .from('ewaste_inventory')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!active) return;
+
+      if (error) {
+        console.error('Failed to load ewaste_inventory:', error.message);
+        setItems([]);
+      } else {
+        setItems(((data as EwasteInventoryRow[]) || []).map(mapRowToInventoryItem));
+      }
+      setLoading(false);
+    }
+
+    void loadInitialInventory();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const syncEDevicesFromApprovedSlip = useCallback(
+    async (slip: ApprovableSlipInput) => {
+      const eDeviceEntries = slip.items.flatMap((slipItem) => {
+        const classification = classifyDeviceItem(
+          slipItem.deviceName,
+          slipItem.isEDevice,
+          slipItem.ictCategory
+        );
+
+        if (!classification.isEDevice || !classification.ictCategory) {
+          return [];
+        }
+
+        return classification.components.map((comp) => ({
+          slip_item_id: slip.id,
+          tracking_code: slip.trackingCode,
+          source_device: slipItem.deviceName,
+          ict_category: classification.ictCategory as string,
+          component_name: comp.componentName,
+          classification: comp.classification,
+          quantity: slipItem.quantity || 1,
+          weight_kg: comp.defaultWeightKg,
+          dismantled_by: slip.custodianName || 'Pending Assignment',
+          ar_status: 'In Storage',
+        }));
+      });
+
+      if (eDeviceEntries.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('ewaste_inventory')
+        .insert(eDeviceEntries)
+        .select('*');
+
+      if (error) {
+        console.error('Failed to sync E-Devices to ewaste_inventory:', error.message);
+        return [];
+      }
+
+      const mapped = ((data as EwasteInventoryRow[]) || []).map(mapRowToInventoryItem);
+      setItems((prev) => [...mapped, ...prev]);
+      return mapped;
+    },
+    []
+  );
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -105,12 +166,13 @@ export function useInventoryControl() {
       const matchesSearch =
         item.componentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.sourceDevice.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.ictCategory || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.trackingCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.dismantledBy.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   }, [items, selectedCategory, searchTerm]);
 
-  // Summary counts para sa widgets
   const summary = useMemo(() => {
     const totalWeight = items.reduce((acc, curr) => acc + curr.weightKg * curr.quantity, 0);
     const hazardousCount = items.filter((i) => i.category === 'Hazardous').length;
@@ -128,9 +190,12 @@ export function useInventoryControl() {
   return {
     items: filteredItems,
     summary,
+    loading,
     selectedCategory,
     setSelectedCategory,
     searchTerm,
     setSearchTerm,
+    refreshInventory,
+    syncEDevicesFromApprovedSlip,
   };
 }

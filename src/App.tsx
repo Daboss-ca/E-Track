@@ -1,95 +1,18 @@
 // src/App.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import AuthPage from './pages/AuthPage';
 import { supabase } from './lib/supabase';
-import AppLayout from './components/layouts/AppLayout';
-import { Grid, FileText, List, Truck, History } from 'lucide-react';
 
-import SubmitRequestPage from './pages/faculty/SubmitRequestPage';
-import RequestLedgerPage from './pages/faculty/RequestLedgerPage';
-import ActivePickupsPage from './pages/faculty/ActivePickupsPage';
-import DisposalHistoryPage from './pages/faculty/DisposalHistoryPage';
-import { UserDashboard } from './pages/faculty/UserDashboard';
-
+import FacultyModule from './pages/faculty/FacultyModule';
 import CustodianModule from './pages/custodian/CustodianModule';
 import SegregatorModule from './pages/segregator/SegregatorModule';
 import AdminModule from './pages/admin/AdminModule';
 
-
-export type FacultyAppView = 
-  | 'dashboard' 
-  | 'requests-new' 
-  | 'requests-ledger' 
-  | 'tracking-active' 
-  | 'tracking-history';
-
-function FacultyLayout() {
-  const [currentView, setCurrentView] = useState<FacultyAppView>(() => {
-    return (localStorage.getItem('faculty_current_view') as FacultyAppView) || 'dashboard';
-  });
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleNavigate = (view: string) => {
-    setCurrentView(view as FacultyAppView);
-    localStorage.setItem('faculty_current_view', view);
-  };
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <UserDashboard currentNav={currentView} onNavigate={handleNavigate} />;
-      case 'requests-new':
-        return <SubmitRequestPage currentNav={currentView} onNavigate={handleNavigate} />;
-      case 'requests-ledger':
-        return <RequestLedgerPage currentNav={currentView} onNavigate={handleNavigate} />;
-      case 'tracking-active':
-        return <ActivePickupsPage onNavigate={handleNavigate} />;
-      case 'tracking-history':
-        return <DisposalHistoryPage onNavigate={handleNavigate} />;
-      default:
-        return <SubmitRequestPage onNavigate={handleNavigate} />;
-    }
-  };
-
-  const facultyNavItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: <Grid className="h-5 w-5" /> },
-    { id: 'requests-new', name: 'Submit Request', icon: <FileText className="h-5 w-5" /> },
-    { id: 'requests-ledger', name: 'Request Ledger', icon: <List className="h-5 w-5" /> },
-    { id: 'tracking-active', name: 'Active Pickups', icon: <Truck className="h-5 w-5" /> },
-    { id: 'tracking-history', name: 'Disposal History', icon: <History className="h-5 w-5" /> },
-  ];
-
-  return (
-    <AppLayout
-      activeId={currentView}
-      onNavigate={handleNavigate}
-      searchValue={searchQuery}
-      onSearchChange={setSearchQuery}
-      navItems={facultyNavItems}
-    >
-      {renderView()}
-    </AppLayout>
-  );
-}
-
-function CustodianLayout() {
-  return <CustodianModule />;
-}
-
-function SegregatorLayout() {
-  return <SegregatorModule />;
-}
-
-function AdminLayout() {
-  return <AdminModule />;
-}
-
-
 export function AppContent() {
-  const { user, role, status } = useAuth(); 
+  const { user, role, status } = useAuth();
 
   if (status === 'INITIALIZING' || (status === 'FETCHING_PROFILE' && !user)) {
     return (
@@ -128,17 +51,17 @@ export function AppContent() {
     );
   }
 
-  const effectiveRole = (role === 'offc_staff') ? 'faculty' : role;
+  const effectiveRole = role === 'offc_staff' ? 'faculty' : role;
 
   switch (effectiveRole) {
     case 'faculty':
-      return <FacultyLayout />;
+      return <FacultyModule />;
     case 'custodian':
-      return <CustodianLayout />;
+      return <CustodianModule />;
     case 'segregator':
-      return <SegregatorLayout />;
+      return <SegregatorModule />;
     case 'admin':
-      return <AdminLayout />;
+      return <AdminModule />;
     default:
       return <AuthPage />;
   }
@@ -146,12 +69,12 @@ export function AppContent() {
 
 const App: React.FC = () => {
   return (
-      <BrowserRouter>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 
-export default App;
+export default App;       
