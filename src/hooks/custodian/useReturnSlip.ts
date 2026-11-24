@@ -64,6 +64,50 @@ interface ReturnSlipRecord {
   return_slip_items?: SlipItemRecord[];
 }
 
+function mapSlipRecords(rows: ReturnSlipRecord[]): CustodianReturnSlip[] {
+  return rows.map((row) => {
+    const items = (row.return_slip_items || []).map((item) => {
+      const existingTag =
+        row.slip_type === 'PRS'
+          ? item.property_tag || item.property_no || ''
+          : item.property_tag || item.ics_no || '';
+
+      return {
+        id: item.id,
+        slipId: row.id,
+        deviceName: item.device_name,
+        quantity: item.quantity || 1,
+        unit: item.unit || 'unit',
+        acquisitionCost: Number(item.acquisition_cost) || 0,
+        propertyNo: item.property_no || '',
+        icsNo: item.ics_no || '',
+        propertyTag: existingTag,
+        serialNumber: item.serial_number || '',
+        returnReason: item.return_reason || 'Unserviceable',
+        dateAcquired: item.date_acquired || '',
+        endUser: item.end_user || row.returned_by || '',
+        location: item.location || row.department,
+        isRejectedItem: Boolean(item.is_rejected_item),
+        rejectionFeedback: item.rejection_feedback || '',
+      };
+    });
+
+    const firstEndUser = items.find((i) => i.endUser)?.endUser;
+
+    return {
+      id: row.id,
+      trackingCode: row.tracking_code,
+      slipType: row.slip_type,
+      department: row.department || 'N/A',
+      custodianName: row.custodian_name || 'Property Custodian',
+      returnedBy: firstEndUser || row.returned_by || 'End-User',
+      validatedDate: row.validated_date || (row.created_at ? row.created_at.slice(0, 10) : ''),
+      status: row.status,
+      items,
+    };
+  });
+}
+
 export const useReturnSlip = (propRequestId?: string) => {
   const activeSlipId =
     propRequestId || localStorage.getItem('custodian_active_request_id') || null;
@@ -87,49 +131,7 @@ export const useReturnSlip = (propRequestId?: string) => {
 
       if (fetchError) throw fetchError;
 
-      const mapped: CustodianReturnSlip[] = ((data as ReturnSlipRecord[]) || []).map((row) => {
-        const items = (row.return_slip_items || []).map((item) => {
-          const existingTag =
-            row.slip_type === 'PRS'
-              ? item.property_tag || item.property_no || ''
-              : item.property_tag || item.ics_no || '';
-
-          return {
-            id: item.id,
-            slipId: row.id,
-            deviceName: item.device_name,
-            quantity: item.quantity || 1,
-            unit: item.unit || 'unit',
-            acquisitionCost: Number(item.acquisition_cost) || 0,
-            propertyNo: item.property_no || '',
-            icsNo: item.ics_no || '',
-            propertyTag: existingTag,
-            serialNumber: item.serial_number || '',
-            returnReason: item.return_reason || 'Unserviceable',
-            dateAcquired: item.date_acquired || '',
-            endUser: item.end_user || row.returned_by || '',
-            location: item.location || row.department,
-            isRejectedItem: Boolean(item.is_rejected_item),
-            rejectionFeedback: item.rejection_feedback || '',
-          };
-        });
-
-        const firstEndUser = items.find((i) => i.endUser)?.endUser;
-
-        return {
-          id: row.id,
-          trackingCode: row.tracking_code,
-          slipType: row.slip_type,
-          department: row.department || 'N/A',
-          custodianName: row.custodian_name || 'Property Custodian',
-          returnedBy: firstEndUser || row.returned_by || 'End-User',
-          validatedDate: row.validated_date || (row.created_at ? row.created_at.slice(0, 10) : ''),
-          status: row.status,
-          items,
-        };
-      });
-
-      setSlips(mapped);
+      setSlips(mapSlipRecords((data as ReturnSlipRecord[]) || []));
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -142,7 +144,34 @@ export const useReturnSlip = (propRequestId?: string) => {
   }, []);
 
   useEffect(() => {
-    void loadSlips();
+    let active = true;
+
+    const loadInitialSlips = async () => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('return_slips')
+          .select('*, return_slip_items(*)')
+          .order('created_at', { ascending: false });
+
+        if (!active) return;
+        if (fetchError) throw fetchError;
+
+        setSlips(mapSlipRecords((data as ReturnSlipRecord[]) || []));
+      } catch (err: unknown) {
+        if (!active) return;
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Failed to load return slips from database.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInitialSlips();
 
     const channel = supabase
       .channel('custodian-return-slips-checker-sync')
@@ -150,12 +179,15 @@ export const useReturnSlip = (propRequestId?: string) => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'return_slips' },
         () => {
-          void loadSlips();
+          if (active) {
+            void loadSlips();
+          }
         }
       )
       .subscribe();
 
     return () => {
+      active = false;
       void supabase.removeChannel(channel);
     };
   }, [loadSlips]);
@@ -228,7 +260,6 @@ export const useReturnSlip = (propRequestId?: string) => {
       setSubmittingSlipId(slipId);
 
       try {
-        // Exclude rejected items by removing them from return_slip_items so only valid items go to Admin
         for (const rejectedItem of rejectedItems) {
           const { error: deleteError } = await supabase
             .from('return_slip_items')

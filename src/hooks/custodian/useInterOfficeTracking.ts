@@ -45,6 +45,39 @@ function mapSlipStatusToTrackingStatus(slipStatus: string): TrackingStatus {
   return 'pending_supply';
 }
 
+function flattenTrackingRows(rows: ReturnSlipTrackingRow[]): TrackedItem[] {
+  return rows.flatMap((slip) => {
+    const mappedStatus = mapSlipStatusToTrackingStatus(slip.status);
+    const timestamp = slip.updated_at || slip.created_at || new Date().toISOString();
+    const items = slip.return_slip_items || [];
+
+    if (items.length === 0) {
+      return [
+        {
+          id: slip.id,
+          property_number: slip.tracking_code,
+          item_name: `${slip.slip_type} Return Slip (${slip.status})`,
+          status: mappedStatus,
+          office_origin: slip.department,
+          updated_at: timestamp,
+          admin_note: slip.custodian_remarks ?? undefined,
+        },
+      ];
+    }
+
+    return items.map((item) => ({
+      id: item.id,
+      property_number:
+        item.property_tag || item.property_no || item.ics_no || slip.tracking_code,
+      item_name: item.device_name,
+      status: mappedStatus,
+      office_origin: item.location || slip.department,
+      updated_at: timestamp,
+      admin_note: slip.custodian_remarks ?? undefined,
+    }));
+  });
+}
+
 export const useInterOfficeTracking = () => {
   const [trackedItems, setTrackedItems] = useState<TrackedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +91,9 @@ export const useInterOfficeTracking = () => {
     try {
       const { data, error } = await supabase
         .from('return_slips')
-        .select('id, tracking_code, slip_type, department, status, updated_at, created_at, custodian_remarks, return_slip_items(id, device_name, property_no, ics_no, property_tag, location)')
+        .select(
+          'id, tracking_code, slip_type, department, status, updated_at, created_at, custodian_remarks, return_slip_items(id, device_name, property_no, ics_no, property_tag, location)'
+        )
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -67,46 +102,41 @@ export const useInterOfficeTracking = () => {
         return;
       }
 
-      const rows = (data as ReturnSlipTrackingRow[]) || [];
-      const flattened: TrackedItem[] = rows.flatMap((slip) => {
-        const mappedStatus = mapSlipStatusToTrackingStatus(slip.status);
-        const timestamp = slip.updated_at || slip.created_at || new Date().toISOString();
-        const items = slip.return_slip_items || [];
-
-        if (items.length === 0) {
-          return [
-            {
-              id: slip.id,
-              property_number: slip.tracking_code,
-              item_name: `${slip.slip_type} Return Slip (${slip.status})`,
-              status: mappedStatus,
-              office_origin: slip.department,
-              updated_at: timestamp,
-              admin_note: slip.custodian_remarks ?? undefined,
-            },
-          ];
-        }
-
-        return items.map((item) => ({
-          id: item.id,
-          property_number:
-            item.property_tag || item.property_no || item.ics_no || slip.tracking_code,
-          item_name: item.device_name,
-          status: mappedStatus,
-          office_origin: item.location || slip.department,
-          updated_at: timestamp,
-          admin_note: slip.custodian_remarks ?? undefined,
-        }));
-      });
-
-      setTrackedItems(flattened);
+      setTrackedItems(flattenTrackingRows((data as ReturnSlipTrackingRow[]) || []));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void fetchTrackedItems();
+    let active = true;
+
+    const loadInitial = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('return_slips')
+          .select(
+            'id, tracking_code, slip_type, department, status, updated_at, created_at, custodian_remarks, return_slip_items(id, device_name, property_no, ics_no, property_tag, location)'
+          )
+          .order('updated_at', { ascending: false });
+
+        if (!active) return;
+
+        if (error) {
+          console.error('Error fetching return slip tracking items:', error.message);
+          setTrackedItems([]);
+          return;
+        }
+
+        setTrackedItems(flattenTrackingRows((data as ReturnSlipTrackingRow[]) || []));
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInitial();
 
     const trackingChannel = supabase
       .channel('inter-office-return-slips-tracking')
@@ -118,16 +148,19 @@ export const useInterOfficeTracking = () => {
           table: 'return_slips',
         },
         () => {
-          void fetchTrackedItems();
+          if (active) {
+            void fetchTrackedItems();
+          }
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (active && status === 'SUBSCRIBED') {
           setIsLive(true);
         }
       });
 
     return () => {
+      active = false;
       void supabase.removeChannel(trackingChannel);
       setIsLive(false);
     };

@@ -99,7 +99,10 @@ function mapSlipRowToValidationRequest(row: ReturnSlipRow): ValidationRequest {
         : 'Functional';
 
   const mappedDescription = mappedItems
-    .map((i) => `${i.deviceName} (${i.quantity} ${i.unit})${i.returnReason ? ` - ${i.returnReason}` : ''}`)
+    .map(
+      (i) =>
+        `${i.deviceName} (${i.quantity} ${i.unit})${i.returnReason ? ` - ${i.returnReason}` : ''}`
+    )
     .join('; ');
 
   return {
@@ -150,7 +153,33 @@ export function useValidationHub() {
   }, []);
 
   useEffect(() => {
-    void fetchCustodianQueue();
+    let active = true;
+
+    const loadInitialQueue = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('return_slips')
+          .select('*, return_slip_items(*)')
+          .order('created_at', { ascending: false });
+
+        if (!active) return;
+
+        if (error) {
+          console.error('Error loading custodian return slips:', error.message);
+          setRequests([]);
+          return;
+        }
+
+        const mapped = ((data as ReturnSlipRow[]) || []).map(mapSlipRowToValidationRequest);
+        setRequests(mapped);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInitialQueue();
 
     const channel = supabase
       .channel('custodian-return-slips-queue')
@@ -158,12 +187,15 @@ export function useValidationHub() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'return_slips' },
         () => {
-          void fetchCustodianQueue();
+          if (active) {
+            void fetchCustodianQueue();
+          }
         }
       )
       .subscribe();
 
     return () => {
+      active = false;
       void supabase.removeChannel(channel);
     };
   }, [fetchCustodianQueue]);
@@ -199,7 +231,9 @@ export function useValidationHub() {
 
     setRequests((prev) =>
       prev.map((req) =>
-        req.id === id ? { ...req, status: 'Custodian Approved', remarks: trimmedRemarks ?? undefined } : req
+        req.id === id
+          ? { ...req, status: 'Custodian Approved', remarks: trimmedRemarks ?? undefined }
+          : req
       )
     );
     handleCloseInspection();
