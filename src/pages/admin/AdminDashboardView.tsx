@@ -1,12 +1,11 @@
 import React from 'react';
-import { ClipboardList, CheckCircle2, ShieldAlert, Cpu, ArrowRight } from 'lucide-react';
+import { ClipboardList, CheckCircle2, ShieldAlert, Cpu } from 'lucide-react';
 import { useAdminDashboard } from '../../hooks/admin/useAdminDashboard';
 import { useCapacityGuard } from '../../hooks/admin/useCapacityGuard';
 import BarChartOne from '../../components/chart/BarGraph';
 import GaugeChart from '../../components/chart/GaugeChart';
 import Card from '../../components/Card/card';
 import Badge from '../../components/ui/Badge/badge';
-import Button from '../../components/ui/Button/button';
 
 interface MetricCardProps {
   label: string;
@@ -29,7 +28,7 @@ function MetricCard({ label, value, icon, accent }: MetricCardProps) {
 
 export function AdminDashboardView() {
   const { metrics, workflowData, rawCurrentWeight, maxCapacity } = useAdminDashboard();
-  
+
   const capacity = useCapacityGuard(rawCurrentWeight, maxCapacity);
 
   const gaugeBadgeColor =
@@ -38,9 +37,9 @@ export function AdminDashboardView() {
     capacity.percentage >= 50 ? 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-900/50' :
     'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-900/50';
 
-  const dynamicCardStyle = 
-    capacity.statusLevel === 'critical' 
-      ? '!bg-red-50/40 !border-red-200 dark:!bg-red-950/20 dark:!border-red-900/50' 
+  const dynamicCardStyle =
+    capacity.statusLevel === 'critical'
+      ? '!bg-red-50/40 !border-red-200 dark:!bg-red-950/20 dark:!border-red-900/50'
       : capacity.statusLevel === 'warning'
       ? '!bg-amber-50/40 !border-amber-200 dark:!bg-amber-950/20 dark:!border-amber-900/50'
       : 'dark:!bg-white/[0.03]';
@@ -50,20 +49,6 @@ export function AdminDashboardView() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Badge variant="solid" color="success" size="md">
-            System Live
-          </Badge>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            endIcon={<ArrowRight className="h-3.5 w-3.5" />}
-            onClick={() => alert('Exporting summary report...')}
-          >
-            Generate Report
-          </Button>
         </div>
       </div>
 
@@ -91,14 +76,14 @@ export function AdminDashboardView() {
           accent="bg-emerald-50 dark:bg-emerald-500/10"
         />
         <MetricCard
-          label="Active Disposal Requests"
-          value={metrics.activeDisposalRequests}
+          label="Pending Return Slips"
+          value={metrics.pendingReturnSlips}
           icon={<ClipboardList className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
           accent="bg-blue-50 dark:bg-blue-500/10"
         />
         <MetricCard
-          label="Completed Disposals"
-          value={metrics.completedDisposals}
+          label="AR Cleared Items"
+          value={metrics.arClearedItems}
           icon={<CheckCircle2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />}
           accent="bg-indigo-50 dark:bg-indigo-500/10"
         />

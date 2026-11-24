@@ -25,7 +25,7 @@ export interface ValidatedReturnSlip {
   items: ReturnSlipItem[];
 }
 
-const mockReturnSlips: ValidatedReturnSlip[] = [
+export const mockReturnSlips: ValidatedReturnSlip[] = [
   {
     id: 'slip-101',
     trackingCode: 'PRS-2026-0042',

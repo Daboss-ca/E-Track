@@ -1,6 +1,5 @@
 // src/components/layouts/AppSidebar.tsx
 import { useSidebar } from '../../hooks/useSidebar';
-import SidebarWidget from './SidebarWidget';
 import logoSvg from '../../assets/logo.svg'; 
 
 export interface NavItemConfig {
@@ -79,8 +78,6 @@ export default function AppSidebar({ activeId, onNavigate, items }: AppSidebarPr
             </ul>
           </div>
         </nav>
-
-        {isSidebarVisible && <SidebarWidget />}
       </div>
     </aside>
   );

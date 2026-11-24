@@ -6,7 +6,7 @@ interface BarChartProps {
   seriesData: number[];
 }
 
-function wrapCategoryLabel(label: string, maxLineLength = 16): string[] {
+function wrapCategoryLabel(label: string, maxLineLength = 18): string[] {
   const words = label.split(" ");
   const lines: string[] = [];
   let currentLine = "";
@@ -26,19 +26,20 @@ function wrapCategoryLabel(label: string, maxLineLength = 16): string[] {
 }
 
 export default function BarChartOne({ categories, seriesData }: BarChartProps) {
-  const mobileHeight = Math.max(280, categories.length * 45);
+  const mobileHeight = Math.max(280, categories.length * 48);
   const wrappedCategories = categories.map((label) => wrapCategoryLabel(label));
 
-  // Dynamic color detection o tamang contrast color para sa dark/light mode labels
-  const isDarkMode = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
-  const labelColor = isDarkMode ? "#94A3B8" : "#64748B"; // Mas matingkad na Gray para hindi mawala sa dark background
+  const isDarkMode =
+    typeof window !== "undefined" &&
+    document.documentElement.classList.contains("dark");
+  const labelColor = isDarkMode ? "#94A3B8" : "#64748B";
 
   const options: ApexOptions = {
     colors: ["#059669"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "bar",
-      height: 320,
+      height: 330,
       width: "100%",
       toolbar: {
         show: false,
@@ -52,7 +53,7 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: "38%",
+        columnWidth: "40%",
         borderRadius: 8,
         borderRadiusApplication: "end",
       },
@@ -73,10 +74,10 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
       },
       labels: {
         rotate: 0,
-        trim: true,
+        trim: false,
         style: {
-          colors: labelColor, // Ginagamit ang adjusted label color para lumitaw sa dark/light mode
-          fontSize: "12px",
+          colors: labelColor,
+          fontSize: "11px",
           fontWeight: 600,
         },
       },
@@ -100,7 +101,7 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
       borderColor: "rgba(156, 163, 175, 0.15)",
       strokeDashArray: 6,
       padding: {
-        bottom: 10,
+        bottom: 12,
       },
       yaxis: {
         lines: {
@@ -127,7 +128,7 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
         show: true,
       },
       y: {
-        formatter: (val: number) => `${val} tasks/items`,
+        formatter: (val: number) => `${val} slips / items`,
       },
       style: {
         fontSize: "12px",
@@ -187,14 +188,14 @@ export default function BarChartOne({ categories, seriesData }: BarChartProps) {
 
   const series = [
     {
-      name: "Workflow Volume",
+      name: "Return Slip Pipeline",
       data: seriesData,
     },
   ];
 
   return (
     <div id="chartOne" className="w-full transition-all">
-      <Chart options={options} series={series} type="bar" width="100%" height={320} />
+      <Chart options={options} series={series} type="bar" width="100%" height={330} />
     </div>
   );
 }
