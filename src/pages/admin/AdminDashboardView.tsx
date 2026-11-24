@@ -30,7 +30,6 @@ function MetricCard({ label, value, icon, accent }: MetricCardProps) {
 export function AdminDashboardView() {
   const { metrics, workflowData, rawCurrentWeight, maxCapacity } = useAdminDashboard();
   
-  // Isinabay natin ang capacity hook sa iisang data source
   const capacity = useCapacityGuard(rawCurrentWeight, maxCapacity);
 
   const gaugeBadgeColor =

@@ -1,23 +1,29 @@
-
-import { Search, Boxes, ShieldAlert, RefreshCw, Cpu, Layers } from 'lucide-react';
+import { Search, Boxes, ShieldAlert, Weight } from 'lucide-react';
 import { useInventoryControl } from '../../hooks/admin/useInventoryControl';
 import Badge from '../../components/ui/Badge/badge';
+import Card from '../../components/Card/card';
 import { DataTable } from '../../components/ui/Table';
 import type { DataTableColumn } from '../../components/ui/Table';
 
 export function InventoryControlView() {
   const {
     items,
-    summary,
-    selectedCategory,
-    setSelectedCategory,
     searchTerm,
     setSearchTerm,
   } = useInventoryControl();
 
-  const categories = ['All', 'Hazardous', 'Reusable', 'Recyclable'];
+  // Salain lamang ang mga hazardous items para sa E-Waste Inventory Control
+  const hazardousItems = items.filter((item) => item.category === 'Hazardous');
 
-  // Depinisyon ng Columns na may hiwalay na Quantity at Weight (kg)
+  // Pag-compute ng mga KPI metrics mula sa items
+  const totalReturnItems = items.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  const hazardousItemCount = hazardousItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  const totalHazardousWeight = hazardousItems.reduce(
+    (acc, item) => acc + ((item.weightKg || 0) * (item.quantity || 1)),
+    0
+  );
+
+  // Depinisyon ng Columns para sa DataTable
   const columns: DataTableColumn<typeof items[number]>[] = [
     {
       key: 'componentName',
@@ -40,17 +46,7 @@ export function InventoryControlView() {
       sortable: true,
       accessor: (item) => item.category,
       render: (item) => (
-        <Badge
-          variant="light"
-          size="sm"
-          color={
-            item.category === 'Hazardous'
-              ? 'error'
-              : item.category === 'Reusable'
-              ? 'info'
-              : 'success'
-          }
-        >
+        <Badge variant="light" size="sm" color="error">
           {item.category}
         </Badge>
       ),
@@ -101,103 +97,72 @@ export function InventoryControlView() {
 
   return (
     <div className="space-y-6">
-      {/* Header Title */}
+      {/* Header Title & Plain Search Bar sa Kanang Taas */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">E-Waste Inventory Control</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Monitor and track hazardous e-waste components and materials securely.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="solid" color="success" size="md" startIcon={<RefreshCw className="h-3.5 w-3.5 animate-spin" />}>
-            Supabase Realtime Sync Active
-          </Badge>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Component Weight</span>
-            <span className="rounded-lg p-2 bg-emerald-50 dark:bg-emerald-500/10">
-              <Boxes className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </span>
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">{summary.totalWeight} kg</p>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Hazardous Parts</span>
-            <span className="rounded-lg p-2 bg-red-50 dark:bg-red-500/10">
-              <ShieldAlert className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </span>
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">{summary.hazardousCount} Items</p>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Reusable Parts</span>
-            <span className="rounded-lg p-2 bg-blue-50 dark:bg-blue-500/10">
-              <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </span>
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">{summary.reusableCount} Items</p>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Recyclable Parts</span>
-            <span className="rounded-lg p-2 bg-indigo-50 dark:bg-indigo-500/10">
-              <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            </span>
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">{summary.recyclableCount} Items</p>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="relative w-full sm:w-96">
+        <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search component, source device, or worker..."
+            placeholder="Search hazardous component, device..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-200 dark:focus:bg-transparent"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 shadow-sm"
           />
-        </div>
-
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={[
-                  'px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer whitespace-nowrap',
-                  isActive
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
-                ].join(' ')}
-              >
-                {cat}
-              </button>
-            );
-          })}
         </div>
       </div>
 
-      {/* Master Inventory DataTable Layout */}
+      {/* KPI Summary Cards gamit ang Card component */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card>
+          <div className="w-full flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">No. of Return Items</span>
+            <span className="rounded-xl p-2.5 bg-emerald-50 dark:bg-emerald-500/10">
+              <Boxes className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div className="w-full text-left mt-3">
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalReturnItems} Items</p>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="w-full flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">No. of Hazardous Items</span>
+            <span className="rounded-xl p-2.5 bg-red-50 dark:bg-red-500/10">
+              <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </span>
+          </div>
+          <div className="w-full text-left mt-3">
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{hazardousItemCount} Items</p>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="w-full flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Hazardous Weight</span>
+            <span className="rounded-xl p-2.5 bg-amber-50 dark:bg-amber-500/10">
+              <Weight className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </span>
+          </div>
+          <div className="w-full text-left mt-3">
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalHazardousWeight.toFixed(2)} kg</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Master Inventory DataTable Layout (Hazardous Only) */}
       <DataTable
         columns={columns}
-        data={items}
+        data={hazardousItems}
         getRowId={(item) => item.id}
         density="default"
-        emptyMessage="No inventory records match your filter criteria."
+        emptyMessage="No hazardous inventory records found."
       />
     </div>
   );

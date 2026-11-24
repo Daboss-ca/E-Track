@@ -21,8 +21,8 @@ export function AdminModule() {
 
   const adminNavItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { id: 'dispatch', name: 'Work Dispatch', icon: <ClipboardCheck className="h-5 w-5" /> },
-    { id: 'inventory', name: 'Inventory Control', icon: <Boxes className="h-5 w-5" /> },
+    { id: 'dispatch', name: 'Return Slips', icon: <ClipboardCheck className="h-5 w-5" /> },
+    { id: 'inventory', name: 'Inventory', icon: <Boxes className="h-5 w-5" /> },
     { id: 'personnel', name: 'Personnel & RBAC', icon: <Users className="h-5 w-5" /> },
     { id: 'audit', name: 'Audit Logs & Reports', icon: <FileText className="h-5 w-5" /> },
   ];
