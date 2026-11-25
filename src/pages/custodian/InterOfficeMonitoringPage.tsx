@@ -10,7 +10,7 @@ import type { DataTableColumn } from '../../components/ui/Table';
 import { useInterOfficeTracking, type TrackedItem } from '../../hooks/custodian/useInterOfficeTracking';
 
 export function InterOfficeMonitoringPage() {
-  const { trackedItems, loading, isLive, refreshData } = useInterOfficeTracking();
+  const { trackedItems, loading,} = useInterOfficeTracking();
 
   const pendingCount = trackedItems.filter((item) => item.status === 'pending_supply').length;
   const dismantlingCount = trackedItems.filter((item) => item.status === 'dismantling').length;
