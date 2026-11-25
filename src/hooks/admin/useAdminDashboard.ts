@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { ValidatedReturnSlip } from './useWorkDispatch';
 
 export interface AdminMetrics {
   totalEwasteVolume: string;
@@ -9,68 +8,225 @@ export interface AdminMetrics {
   arClearedItems: number;
 }
 
-interface EwasteWeightRow {
-  weight_kg: number | string | null;
-  quantity: number | null;
+interface EwasteInventoryRecord {
+  weight_kg?: number | string | null;
+  quantity?: number | null;
+  category?: string | null;
+  item_type?: string | null;
+  classification?: string | null;
+  created_at?: string | null;
+  date_recorded?: string | null;
+  date_acquired?: string | null;
 }
 
-export function useAdminDashboard(slips: ValidatedReturnSlip[] = []) {
-  const [dbWeightKg, setDbWeightKg] = useState<number>(0);
+interface SlipStatusRow {
+  id: string;
+  slip_type: 'PRS' | 'RRSP' | string | null;
+  status: string | null;
+  return_slip_items?: { quantity: number | null }[] | null;
+}
+
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+function normalizeStatus(status?: string | null): string {
+  return String(status || '').trim().toLowerCase();
+}
+
+function isApprovedSlip(status?: string | null): boolean {
+  const s = normalizeStatus(status);
+  if (
+    s.includes('pending') ||
+    s.includes('rejected') ||
+    s.includes('returned') ||
+    s.includes('draft')
+  ) {
+    return false;
+  }
+  return (
+    s.includes('approved by admin') ||
+    s.includes('admin approved') ||
+    s === 'approved' ||
+    s === 'completed'
+  );
+}
+
+function isPendingAdminSlip(status?: string | null): boolean {
+  const s = normalizeStatus(status);
+  return s.includes('pending admin') || s === 'pending approval' || s.includes('forwarded');
+}
+
+function isHazardousRecord(row: EwasteInventoryRecord): boolean {
+  const combined = `${row.category || ''} ${row.item_type || ''} ${row.classification || ''}`
+    .trim()
+    .toLowerCase();
+  return combined.includes('hazard');
+}
+
+function extractYearAndMonth(row: EwasteInventoryRecord): { year: number; monthIndex: number } | null {
+  const rawDate = row.created_at || row.date_recorded || row.date_acquired;
+  if (!rawDate) return null;
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(rawDate.trim());
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const monthNum = Number(isoMatch[2]);
+    if (!Number.isNaN(year) && monthNum >= 1 && monthNum <= 12) {
+      return { year, monthIndex: monthNum - 1 };
+    }
+  }
+
+  const parsed = new Date(rawDate);
+  if (!Number.isNaN(parsed.getTime())) {
+    return {
+      year: parsed.getFullYear(),
+      monthIndex: parsed.getMonth(),
+    };
+  }
+
+  return null;
+}
+
+export function useAdminDashboard() {
+  const currentSystemYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentSystemYear);
+  const [inventoryRows, setInventoryRows] = useState<EwasteInventoryRecord[]>([]);
+  const [slips, setSlips] = useState<SlipStatusRow[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const maxCapacity = 1800;
+
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [inventoryRes, slipsRes] = await Promise.all([
+        supabase.from('ewaste_inventory').select('*'),
+        supabase
+          .from('return_slips')
+          .select('id, slip_type, status, return_slip_items(quantity)'),
+      ]);
+
+      if (!inventoryRes.error && inventoryRes.data) {
+        setInventoryRows(inventoryRes.data as EwasteInventoryRecord[]);
+      }
+
+      if (!slipsRes.error && slipsRes.data) {
+        setSlips(slipsRes.data as SlipStatusRow[]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
 
-    async function loadInventoryWeight() {
-      const { data, error } = await supabase
-        .from('ewaste_inventory')
-        .select('weight_kg, quantity');
+    const initialLoad = async () => {
+      try {
+        const [inventoryRes, slipsRes] = await Promise.all([
+          supabase.from('ewaste_inventory').select('*'),
+          supabase
+            .from('return_slips')
+            .select('id, slip_type, status, return_slip_items(quantity)'),
+        ]);
 
-      if (!active || error || !data) return;
+        if (!active) return;
 
-      const total = (data as EwasteWeightRow[]).reduce((sum, row) => {
-        const w = Number(row.weight_kg) || 0;
-        const q = row.quantity || 1;
-        return sum + w * q;
-      }, 0);
+        if (!inventoryRes.error && inventoryRes.data) {
+          setInventoryRows(inventoryRes.data as EwasteInventoryRecord[]);
+        }
 
-      setDbWeightKg(Number(total.toFixed(2)));
-    }
+        if (!slipsRes.error && slipsRes.data) {
+          setSlips(slipsRes.data as SlipStatusRow[]);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
 
-    void loadInventoryWeight();
+    void initialLoad();
+
+    const slipsChannel = supabase
+      .channel('admin-dashboard-return-slips-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'return_slips' },
+        () => {
+          if (active) {
+            void loadDashboardData();
+          }
+        }
+      )
+      .subscribe();
+
+    const inventoryChannel = supabase
+      .channel('admin-dashboard-inventory-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ewaste_inventory' },
+        () => {
+          if (active) {
+            void loadDashboardData();
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
       active = false;
+      void supabase.removeChannel(slipsChannel);
+      void supabase.removeChannel(inventoryChannel);
     };
-  }, [slips]);
+  }, [loadDashboardData]);
 
-  const rawCurrentWeight = dbWeightKg;
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<number>([2026, currentSystemYear]);
+    for (const row of inventoryRows) {
+      const extracted = extractYearAndMonth(row);
+      if (extracted) {
+        yearsSet.add(extracted.year);
+      }
+    }
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  }, [inventoryRows, currentSystemYear]);
 
-  const { pendingCount, approvedCount, clearedItemQty, prsCount, rrspCount } = useMemo(() => {
-    let pending = 0;
-    let approved = 0;
-    let clearedQty = 0;
-    let prs = 0;
-    let rrsp = 0;
+  const rawCurrentWeight = useMemo(() => {
+    const total = inventoryRows.reduce((sum, row) => {
+      const w = Number(row.weight_kg) || 0;
+      const q = row.quantity || 1;
+      return sum + w * q;
+    }, 0);
+    return Number(total.toFixed(2));
+  }, [inventoryRows]);
+
+  const slipCounts = useMemo(() => {
+    let pendingAdmin = 0;
+    let approvedSlips = 0;
 
     for (const slip of slips) {
-      if (slip.slipType === 'PRS') prs += 1;
-      if (slip.slipType === 'RRSP') rrsp += 1;
-
-      if (slip.status === 'Pending Admin Approval') {
-        pending += 1;
-      } else if (slip.status === 'Approved') {
-        approved += 1;
-        clearedQty += slip.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      if (isApprovedSlip(slip.status)) {
+        approvedSlips += 1;
+      } else if (isPendingAdminSlip(slip.status)) {
+        pendingAdmin += 1;
       }
     }
 
     return {
-      pendingCount: pending,
-      approvedCount: approved,
-      clearedItemQty: clearedQty,
-      prsCount: prs,
-      rrspCount: rrsp,
+      pendingAdmin,
+      approvedSlips,
     };
   }, [slips]);
 
@@ -86,40 +242,43 @@ export function useAdminDashboard(slips: ValidatedReturnSlip[] = []) {
 
     return {
       totalEwasteVolume: `${rawCurrentWeight.toLocaleString()} kg`,
-      pendingReturnSlips: pendingCount,
+      pendingReturnSlips: slipCounts.pendingAdmin,
       systemStatus: statusText,
-      arClearedItems: clearedItemQty,
+      arClearedItems: slipCounts.approvedSlips,
     };
-  }, [rawCurrentWeight, maxCapacity, pendingCount, clearedItemQty]);
+  }, [rawCurrentWeight, maxCapacity, slipCounts]);
 
-  const workflowData = useMemo(() => {
-    const totalSlips = slips.length;
-    const validatedSlips = slips.filter((s) => s.status !== 'Rejected').length;
+  const monthlyHazardousData = useMemo(() => {
+    const monthlyKg = Array.from({ length: 12 }, () => 0);
+
+    for (const row of inventoryRows) {
+      if (!isHazardousRecord(row)) continue;
+
+      const extracted = extractYearAndMonth(row);
+      if (!extracted || extracted.year !== selectedYear) continue;
+
+      const w = Number(row.weight_kg) || 0;
+      const q = row.quantity || 1;
+      monthlyKg[extracted.monthIndex] = Number(
+        (monthlyKg[extracted.monthIndex] + w * q).toFixed(2)
+      );
+    }
 
     return {
-      categories: [
-        'Submitted',
-        'Custodian Review',
-        'Pending Approval',
-        'PRS / RRSP Issued',
-        'Hazard Tagged',
-        'AR Cleared',
-      ],
-      seriesData: [
-        totalSlips,
-        validatedSlips,
-        pendingCount,
-        prsCount + rrspCount,
-        approvedCount,
-        clearedItemQty,
-      ],
+      categories: MONTH_LABELS,
+      seriesData: monthlyKg,
     };
-  }, [slips, pendingCount, prsCount, rrspCount, approvedCount, clearedItemQty]);
+  }, [inventoryRows, selectedYear]);
 
   return {
     metrics,
-    workflowData,
+    selectedYear,
+    setSelectedYear,
+    availableYears,
+    monthlyHazardousData,
     rawCurrentWeight,
     maxCapacity,
+    loading,
+    refreshDashboard: loadDashboardData,
   };
 }

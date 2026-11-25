@@ -1,6 +1,4 @@
 import {
-  Activity,
-  RefreshCw,
   Package,
   Wrench,
   CheckCircle2,
@@ -145,41 +143,6 @@ export function InterOfficeMonitoringPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Track return slips from end-user submission to custodian validation and admin approval.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${
-              isLive
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
-                : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-500'
-            }`}
-          >
-            {isLive ? (
-              <>
-                <span className="relative flex h-2.5 w-2.5 mr-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                Live Sync Active
-              </>
-            ) : (
-              <>
-                <Activity className="w-3.5 h-3.5 mr-1.5" />
-                Connecting...
-              </>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void refreshData()}
-            disabled={loading}
-            className="p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
-            title="Manual Refresh"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </div>
 

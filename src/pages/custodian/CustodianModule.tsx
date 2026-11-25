@@ -1,15 +1,24 @@
 import { useState } from 'react';
-import { FileText, Monitor } from 'lucide-react';
 import AppLayout from '../../components/layouts/AppLayout';
+import NavIcon from '../../components/navigation/NavIcon';
+import CustodianDashboard from './CustodianDashboard';
 import { ReturnSlipGenerator } from './ReturnSlipGenerator';
 import InterOfficeMonitoringPage from './InterOfficeMonitoringPage';
 
-type CustodianAppView = 'return-slip' | 'inter-office-monitoring';
+type CustodianAppView = 'dashboard' | 'return-slip' | 'inter-office-monitoring';
+
+function normalizeCustodianView(view?: string | null): CustodianAppView {
+  if (view === 'return-slip') return 'return-slip';
+  if (view === 'inter-office-monitoring' || view === 'status-monitoring') {
+    return 'inter-office-monitoring';
+  }
+  return 'dashboard';
+}
 
 export default function CustodianModule() {
   const [currentView, setCurrentView] = useState<CustodianAppView>(() => {
     const saved = localStorage.getItem('custodian_current_view');
-    return saved === 'inter-office-monitoring' ? 'inter-office-monitoring' : 'return-slip';
+    return normalizeCustodianView(saved);
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeRequestId, setActiveRequestId] = useState<string | undefined>(() => {
@@ -17,8 +26,7 @@ export default function CustodianModule() {
   });
 
   const handleNavigate = (view: string, payload?: string) => {
-    const nextView: CustodianAppView =
-      view === 'inter-office-monitoring' ? 'inter-office-monitoring' : 'return-slip';
+    const nextView = normalizeCustodianView(view);
     setCurrentView(nextView);
     localStorage.setItem('custodian_current_view', nextView);
 
@@ -30,6 +38,13 @@ export default function CustodianModule() {
 
   const renderView = () => {
     switch (currentView) {
+      case 'dashboard':
+        return (
+          <CustodianDashboard
+            currentNav={currentView}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'return-slip':
         return (
           <ReturnSlipGenerator
@@ -41,8 +56,8 @@ export default function CustodianModule() {
         return <InterOfficeMonitoringPage />;
       default:
         return (
-          <ReturnSlipGenerator
-            requestId={activeRequestId}
+          <CustodianDashboard
+            currentNav={currentView}
             onNavigate={handleNavigate}
           />
         );
@@ -50,11 +65,20 @@ export default function CustodianModule() {
   };
 
   const custodianNavItems = [
-    { id: 'return-slip', name: 'Return Slip', icon: <FileText className="h-5 w-5" /> },
+    {
+      id: 'dashboard',
+      name: 'Dashboard',
+      icon: <NavIcon variant="dashboard" />,
+    },
+    {
+      id: 'return-slip',
+      name: 'Return Slip',
+      icon: <NavIcon variant="return-slip" />,
+    },
     {
       id: 'inter-office-monitoring',
-      name: 'Inter-Office Monitoring',
-      icon: <Monitor className="h-5 w-5" />,
+      name: 'Slip Status',
+      icon: <NavIcon variant="status-records" />,
     },
   ];
 

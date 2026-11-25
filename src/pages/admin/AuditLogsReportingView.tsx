@@ -1,6 +1,13 @@
-import  { useState } from 'react';
-import { ShieldCheck, Search, CheckCircle, X, Calendar } from 'lucide-react';
-import { useAuditLogs } from '../../hooks/admin/useAuditLogs';
+import { useState } from 'react';
+import {
+  ShieldCheck,
+  Search,
+  CheckCircle,
+  X,
+  Calendar,
+  AlertCircle,
+} from 'lucide-react';
+import { useAuditLogs, type ApprovedSlipReportRow, type AuditLogItem } from '../../hooks/admin/useAuditLogs';
 import Card from '../../components/Card/card';
 import Badge from '../../components/ui/Badge/badge';
 import Button from '../../components/ui/Button/button';
@@ -27,144 +34,131 @@ export function AuditLogsReportingView() {
     selectedFilter,
     setSelectedFilter,
     isExporting,
+    loading,
+    errorMessage,
     auditLogs,
     disposalReports,
     filteredLogs,
     handleGeneratePDF,
   } = useAuditLogs();
 
-  const [previewReport, setPreviewReport] = useState<typeof disposalReports[number] | null>(null);
+  const [previewReport, setPreviewReport] = useState<ApprovedSlipReportRow | null>(null);
 
-  // Helper function para kalkulahin ang breakdown base sa category
-  const getCategoryData = (extractedParts: typeof disposalReports[number]['extractedParts'], targetCategory: 'Hazardous' | 'Reusable' | 'Recyclable') => {
-    const matchedParts = extractedParts.filter((p) => p.category === targetCategory);
-    const count = matchedParts.reduce((sum, p) => sum + p.count, 0);
-    const weightKg = matchedParts.reduce((sum, p) => sum + p.weightKg, 0);
-
-    return {
-      count,
-      weightKg: weightKg.toFixed(2),
-      hasItems: matchedParts.length > 0,
-    };
-  };
-
-  // Columns for Official Disposal Reports Table
-  const reportColumns: DataTableColumn<typeof disposalReports[number]>[] = [
+  const reportColumns: DataTableColumn<ApprovedSlipReportRow>[] = [
     {
-      key: 'batchCode',
-      header: 'Report & Batch Code',
+      key: 'trackingCode',
+      header: 'Tracking Code & Type',
       dataType: 'identifier',
       pin: 'left',
-      minWidth: '180px',
+      minWidth: '170px',
       sortable: true,
-      accessor: (report) => report.batchCode,
+      accessor: (report) => report.trackingCode,
       render: (report) => (
         <div>
-          <span className="text-[11px] font-mono text-gray-400">{report.reportId}</span>
-          <p className="font-bold text-gray-900 dark:text-white mt-0.5">{report.batchCode}</p>
+          <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
+            {report.trackingCode}
+          </span>
+          <div className="mt-1">
+            <Badge
+              variant="light"
+              color={report.slipType === 'PRS' ? 'success' : 'info'}
+              size="sm"
+            >
+              {report.slipType}
+            </Badge>
+          </div>
         </div>
       ),
     },
     {
-      key: 'totalWeightKg',
-      header: 'Total Weight',
-      dataType: 'numeric',
-      minWidth: '130px',
+      key: 'itemDescription',
+      header: 'Item Description',
+      dataType: 'text',
+      minWidth: '210px',
       sortable: true,
-      accessor: (report) => report.totalWeightKg,
+      accessor: (report) => report.itemDescription,
       render: (report) => (
-        <span className="font-mono font-bold text-gray-900 dark:text-white">
-          {report.totalWeightKg.toLocaleString()} kg
+        <span className="font-semibold text-gray-900 dark:text-white">
+          {report.itemDescription}
         </span>
       ),
     },
     {
-      key: 'hazardousParts',
-      header: 'Hazardous Parts',
-      dataType: 'numeric',
-      minWidth: '150px',
-      sortable: true,
-      accessor: (report) => getCategoryData(report.extractedParts, 'Hazardous').count,
-      render: (report) => {
-        const data = getCategoryData(report.extractedParts, 'Hazardous');
-        return data.hasItems ? (
-          <div className="font-mono text-xs text-right">
-            <span className="font-bold text-red-600 dark:text-red-400">{data.count} pcs</span>
-            <span className="text-gray-400 block text-[11px]">({data.weightKg} kg)</span>
-          </div>
-        ) : (
-          <span className="text-gray-300 dark:text-gray-700 block text-right">-</span>
-        );
-      },
-    },
-    {
-      key: 'reusableParts',
-      header: 'Reusable Parts',
-      dataType: 'numeric',
-      minWidth: '150px',
-      sortable: true,
-      accessor: (report) => getCategoryData(report.extractedParts, 'Reusable').count,
-      render: (report) => {
-        const data = getCategoryData(report.extractedParts, 'Reusable');
-        return data.hasItems ? (
-          <div className="font-mono text-xs text-right">
-            <span className="font-bold text-blue-600 dark:text-blue-400">{data.count} pcs</span>
-            <span className="text-gray-400 block text-[11px]">({data.weightKg} kg)</span>
-          </div>
-        ) : (
-          <span className="text-gray-300 dark:text-gray-700 block text-right">-</span>
-        );
-      },
-    },
-    {
-      key: 'recyclableParts',
-      header: 'Recyclable Parts',
-      dataType: 'numeric',
-      minWidth: '150px',
-      sortable: true,
-      accessor: (report) => getCategoryData(report.extractedParts, 'Recyclable').count,
-      render: (report) => {
-        const data = getCategoryData(report.extractedParts, 'Recyclable');
-        return data.hasItems ? (
-          <div className="font-mono text-xs text-right">
-            <span className="font-bold text-emerald-600 dark:text-emerald-400">{data.count} pcs</span>
-            <span className="text-gray-400 block text-[11px]">({data.weightKg} kg)</span>
-          </div>
-        ) : (
-          <span className="text-gray-300 dark:text-gray-700 block text-right">-</span>
-        );
-      },
-    },
-    {
-      key: 'dateGenerated',
-      header: 'Date Generated',
-      dataType: 'identifier',
-      minWidth: '130px',
-      sortable: true,
-      accessor: (report) => report.dateGenerated,
-      render: (report) => (
-        <span className="font-mono text-xs text-gray-600 dark:text-gray-400">
-          {report.dateGenerated}
-        </span>
-      ),
-    },
-    {
-      key: 'complianceStatus',
-      header: 'Compliance Status',
+      key: 'propertyOrIcsNo',
+      header: 'Property / ICS No.',
       dataType: 'text',
       minWidth: '150px',
       sortable: true,
-      accessor: (report) => report.complianceStatus,
+      accessor: (report) => report.propertyOrIcsNo,
       render: (report) => (
-        <Badge variant="light" color="success" size="sm" startIcon={<CheckCircle className="h-3 w-3" />}>
-          {report.complianceStatus}
+        <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+          {report.propertyOrIcsNo}
+        </span>
+      ),
+    },
+    {
+      key: 'quantity',
+      header: 'Qty / Unit',
+      dataType: 'numeric',
+      minWidth: '120px',
+      sortable: true,
+      accessor: (report) => report.quantity,
+      render: (report) => (
+        <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">
+          {report.quantity} {report.unit}
+        </span>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department / End-User',
+      dataType: 'text',
+      minWidth: '190px',
+      sortable: true,
+      accessor: (report) => report.department,
+      render: (report) => (
+        <div>
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+            {report.department}
+          </p>
+          <span className="text-[11px] text-gray-400">{report.endUser}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'dateApproved',
+      header: 'Date Approved',
+      dataType: 'identifier',
+      minWidth: '130px',
+      sortable: true,
+      accessor: (report) => report.dateApproved,
+      render: (report) => (
+        <span className="font-mono text-xs text-gray-600 dark:text-gray-400">
+          {report.dateApproved}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      dataType: 'text',
+      minWidth: '130px',
+      sortable: true,
+      accessor: (report) => report.status,
+      render: (report) => (
+        <Badge
+          variant="light"
+          color="success"
+          size="sm"
+          startIcon={<CheckCircle className="h-3 w-3" />}
+        >
+          {report.status}
         </Badge>
       ),
     },
   ];
 
-  // Columns for Audit Log Trail Table
-  const logColumns: DataTableColumn<typeof auditLogs[number]>[] = [
+  const logColumns: DataTableColumn<AuditLogItem>[] = [
     {
       key: 'id',
       header: 'Log ID',
@@ -173,7 +167,9 @@ export function AuditLogsReportingView() {
       minWidth: '120px',
       sortable: true,
       accessor: (log) => log.id,
-      render: (log) => <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.id}</span>,
+      render: (log) => (
+        <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.id}</span>
+      ),
     },
     {
       key: 'action',
@@ -185,10 +181,15 @@ export function AuditLogsReportingView() {
       render: (log) => (
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-            ACTION_STYLES[log.action] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+            ACTION_STYLES[log.action] ??
+            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${ACTION_DOT[log.action] ?? 'bg-gray-400'}`} />
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              ACTION_DOT[log.action] ?? 'bg-gray-400'
+            }`}
+          />
           {log.action}
         </span>
       ),
@@ -199,7 +200,9 @@ export function AuditLogsReportingView() {
       dataType: 'text',
       minWidth: '250px',
       accessor: (log) => log.details,
-      render: (log) => <p className="text-xs text-gray-800 dark:text-gray-200">{log.details}</p>,
+      render: (log) => (
+        <p className="text-xs text-gray-800 dark:text-gray-200">{log.details}</p>
+      ),
     },
     {
       key: 'performedBy',
@@ -210,7 +213,9 @@ export function AuditLogsReportingView() {
       accessor: (log) => log.performedBy,
       render: (log) => (
         <div>
-          <p className="font-medium text-xs text-gray-800 dark:text-gray-200">{log.performedBy}</p>
+          <p className="font-medium text-xs text-gray-800 dark:text-gray-200">
+            {log.performedBy}
+          </p>
           <span className="text-[10px] text-gray-400">{log.role}</span>
         </div>
       ),
@@ -222,7 +227,11 @@ export function AuditLogsReportingView() {
       minWidth: '150px',
       sortable: true,
       accessor: (log) => log.timestamp,
-      render: (log) => <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.timestamp}</span>,
+      render: (log) => (
+        <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+          {log.timestamp}
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -244,30 +253,36 @@ export function AuditLogsReportingView() {
       {/* Header Title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Audit Logs & Reporting</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Audit Logs &amp; Reporting
+          </h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            System transparency tracker, immutable compliance logs, and official disposal reporting.
+            System transparency tracker, immutable compliance logs, and official disposal reporting from approved return slips.
           </p>
         </div>
-
-        <Badge variant="solid" color="success" size="md" startIcon={<ShieldCheck className="h-3.5 w-3.5" />}>
-          Immutable Logs Active
-        </Badge>
       </div>
+
+      {errorMessage && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Official Disposal Reports DataTable */}
       <Card
         title="Official Disposal Reports"
-        subtitle="Compliance-certified summaries of total weights and extracted e-waste components."
+        subtitle="Admin-approved PRS and RRSP return slip items marked as Disposed."
         className="dark:!bg-white/[0.03]"
       >
         <div className="w-full py-2">
           <DataTable
             columns={reportColumns}
             data={disposalReports}
-            getRowId={(report) => report.reportId}
+            getRowId={(report) => report.id}
+            isLoading={loading}
             density="default"
-            emptyMessage="No disposal reports found."
+            emptyMessage="No admin-approved return slip disposal records found."
           />
         </div>
       </Card>
@@ -275,7 +290,7 @@ export function AuditLogsReportingView() {
       {/* Non-editable Audit Log Section */}
       <Card
         title="Non-Editable Audit Log Trail"
-        subtitle="Read-only system history tracking all approvals, status changes, and task assignments."
+        subtitle="Read-only system history tracking approvals, status updates, and return slip queue activity."
         className="dark:!bg-white/[0.03]"
       >
         <div className="w-full space-y-4 py-2">
@@ -298,6 +313,7 @@ export function AuditLogsReportingView() {
               {['All', 'Approval', 'Status Change', 'Task Assignment'].map((filter) => (
                 <button
                   key={filter}
+                  type="button"
                   onClick={() => setSelectedFilter(filter)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
                     selectedFilter === filter
@@ -315,6 +331,7 @@ export function AuditLogsReportingView() {
             columns={logColumns}
             data={filteredLogs}
             getRowId={(log) => log.id}
+            isLoading={loading}
             density="default"
             emptyMessage="No audit log records found matching your filter."
           />
@@ -337,15 +354,18 @@ export function AuditLogsReportingView() {
           <div className="p-1 space-y-4">
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
               <div>
-                <span className="text-[11px] font-mono text-gray-400">{previewReport.reportId}</span>
+                <span className="text-[11px] font-mono text-gray-400">
+                  {previewReport.slipType} · {previewReport.propertyOrIcsNo}
+                </span>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
-                  Batch: {previewReport.batchCode}
+                  Slip: {previewReport.trackingCode}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> Generated {previewReport.dateGenerated}
+                  <Calendar className="h-3 w-3" /> Approved {previewReport.dateApproved}
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setPreviewReport(null)}
                 className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
                 aria-label="Close preview"
@@ -356,42 +376,24 @@ export function AuditLogsReportingView() {
 
             <div className="grid grid-cols-2 gap-4 py-2">
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3.5">
-                <span className="text-[11px] font-medium text-gray-400">Total Weight</span>
+                <span className="text-[11px] font-medium text-gray-400">Quantity</span>
                 <p className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-1 font-mono">
-                  {previewReport.totalWeightKg.toLocaleString()} <span className="text-xs font-normal text-gray-400">kg</span>
+                  {previewReport.quantity}{' '}
+                  <span className="text-xs font-normal text-gray-400">{previewReport.unit}</span>
                 </p>
               </div>
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3.5">
-                <span className="text-[11px] font-medium text-gray-400">Compliance Status</span>
+                <span className="text-[11px] font-medium text-gray-400">Status</span>
                 <div className="mt-1.5">
-                  <Badge variant="light" color="success" size="sm" startIcon={<CheckCircle className="h-3 w-3" />}>
-                    {previewReport.complianceStatus}
+                  <Badge
+                    variant="light"
+                    color="success"
+                    size="sm"
+                    startIcon={<CheckCircle className="h-3 w-3" />}
+                  >
+                    {previewReport.status}
                   </Badge>
                 </div>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[11px] font-medium text-gray-400">Extracted Components</span>
-              <div className="mt-2 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400">
-                      <th className="p-2.5 text-left font-medium">Component</th>
-                      <th className="p-2.5 text-right font-medium">Count</th>
-                      <th className="p-2.5 text-right font-medium">Weight</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60">
-                    {previewReport.extractedParts.map((part, idx) => (
-                      <tr key={idx}>
-                        <td className="p-2.5 text-gray-800 dark:text-gray-200">{part.partName}</td>
-                        <td className="p-2.5 text-right text-gray-500 dark:text-gray-400 font-mono">{part.count} pcs</td>
-                        <td className="p-2.5 text-right font-mono font-medium text-gray-800 dark:text-gray-200">{part.weightKg} kg</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </div>
 
@@ -400,11 +402,15 @@ export function AuditLogsReportingView() {
                 variant="primary"
                 size="sm"
                 onClick={() =>
-                  handleGeneratePDF(previewReport.reportId, previewReport.batchCode, (msg) => alert(msg))
+                  handleGeneratePDF(
+                    previewReport.id,
+                    previewReport.trackingCode,
+                    (msg) => alert(msg)
+                  )
                 }
                 disabled={isExporting}
               >
-                {isExporting ? 'Generating...' : 'Export Official PDF Report'}
+                {isExporting ? 'Generating...' : 'Export Report'}
               </Button>
             </div>
           </div>
